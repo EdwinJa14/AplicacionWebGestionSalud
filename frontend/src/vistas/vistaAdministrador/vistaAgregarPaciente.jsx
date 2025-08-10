@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
@@ -6,25 +6,15 @@ import {
   TextField,
   MenuItem,
   Button,
-  Paper,
   Card,
   CardContent,
   CardHeader,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
-  Chip,
   InputAdornment,
-  Alert,
   Snackbar,
-  IconButton,
+  Alert,
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 
-// Iconos
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
@@ -33,41 +23,14 @@ import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
 import SaveIcon from '@mui/icons-material/Save';
 import ClearIcon from '@mui/icons-material/Clear';
-import PeopleIcon from '@mui/icons-material/People';
 
 import * as pacienteService from '../../../servicios/serviciosAdmin/serviciosPacientes';
 
-// Datos de configuración
 const generos = ['Masculino', 'Femenino', 'Otro'];
 const tiposPaciente = ['General', 'Cronico', 'Prenatal'];
 
-// Función para calcular edad
-function calcularEdad(fechaNacimiento) {
-  const hoy = new Date();
-  const nacimiento = new Date(fechaNacimiento);
-  let edad = hoy.getFullYear() - nacimiento.getFullYear();
-  const mes = hoy.getMonth() - nacimiento.getMonth();
-  if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
-    edad--;
-  }
-  return edad;
-}
-
-// Función para obtener color del chip según el tipo
-const obtenerColorTipo = (tipo) => {
-  switch (tipo) {
-    case 'General': return 'primary';
-    case 'Cronico': return 'warning';
-    case 'Prenatal': return 'success';
-    default: return 'default';
-  }
-};
-
-export default function VistaAgregarPaciente() {
-  const [pacientes, setPacientes] = useState([]);
-  const [cargando, setCargando] = useState(false);
+export default function VistaAgregarPaciente({ onPacienteAgregado }) {
   const [guardando, setGuardando] = useState(false);
-  const [alerta, setAlerta] = useState({ open: false, mensaje: '', tipo: 'success' });
 
   const { handleSubmit, control, reset, formState: { errors } } = useForm({
     defaultValues: {
@@ -82,39 +45,19 @@ export default function VistaAgregarPaciente() {
     }
   });
 
-  const cargarPacientes = async () => {
-    try {
-      setCargando(true);
-      const data = await pacienteService.getAll();
-      setPacientes(Array.isArray(data) ? data : []);
-    } catch (error) {
-      mostrarAlerta('Error al cargar pacientes: ' + error.message, 'error');
-    } finally {
-      setCargando(false);
-    }
-  };
-
-  const mostrarAlerta = (mensaje, tipo = 'success') => {
-    setAlerta({ open: true, mensaje, tipo });
-  };
-
-  const cerrarAlerta = () => {
-    setAlerta({ ...alerta, open: false });
-  };
-
-  useEffect(() => {
-    cargarPacientes();
-  }, []);
-
   const onSubmit = async (data) => {
     try {
       setGuardando(true);
       await pacienteService.create(data);
       reset();
-      cargarPacientes();
-      mostrarAlerta('¡Paciente registrado exitosamente!', 'success');
+      // Notificar al componente padre para que recargue la lista y muestre el mensaje
+      if (onPacienteAgregado) {
+        onPacienteAgregado();
+      }
     } catch (error) {
-      mostrarAlerta('Error al guardar paciente: ' + error.message, 'error');
+      // En caso de error, podrías manejar esto también en el componente padre
+      console.error('Error al guardar paciente:', error);
+      alert('Error al guardar paciente: ' + error.message);
     } finally {
       setGuardando(false);
     }
@@ -125,76 +68,50 @@ export default function VistaAgregarPaciente() {
   };
 
   return (
-    <Box sx={{ 
-      minHeight: '100vh',
-      backgroundColor: '#f5f7fa',
-      p: { xs: 2, md: 4 }
-    }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography 
-          variant="h4" 
-          component="h1" 
-          sx={{ 
-            fontWeight: 700,
-            color: '#2c3e50',
-            mb: 1,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2
-          }}
-        >
-          <PersonAddIcon sx={{ fontSize: 40, color: '#3498db' }} />
-          Gestión de Pacientes
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary">
-          Registre y administre la información de los pacientes del centro médico
-        </Typography>
-      </Box>
-
-      {/* Formulario de Registro - Una sola tarjeta ancha */}
+    <>
       <Card 
-        elevation={0}
+        elevation={2}
         sx={{ 
           borderRadius: 3,
           border: '1px solid #e1e8ed',
-          mb: 4
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          mb: 0
         }}
       >
         <CardHeader
           title={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <PersonAddIcon color="primary" />
-              <Typography variant="h6" component="h2" fontWeight={600}>
+              <Typography variant="h6" fontWeight={600}>
                 Registrar Nuevo Paciente
               </Typography>
             </Box>
           }
           sx={{ 
-            backgroundColor: '#f8f9fa',
-            borderBottom: '1px solid #e1e8ed'
+            backgroundColor: '#f8f9fa', 
+            borderBottom: '1px solid #e1e8ed',
+            py: 2
           }}
         />
-        <CardContent sx={{ p: 4 }}>
+        <CardContent sx={{ p: 3 }}>
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
             {/* Información Personal */}
-            <Typography 
-              variant="subtitle2" 
-              sx={{ 
-                fontWeight: 600, 
-                color: '#3498db',
-                mb: 3,
+            <Typography
+              variant="subtitle2"
+              sx={{
+                fontWeight: 600,
+                color: '#1976d2',
+                mb: 2,
                 textTransform: 'uppercase',
                 fontSize: '0.75rem',
-                letterSpacing: 1
+                letterSpacing: 1,
               }}
             >
               Información Personal
             </Typography>
 
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-              {/* Primera fila: Nombres, Apellidos, DPI, Fecha de Nacimiento, Género */}
-              <Grid item xs={12} sm={6} md={2.4}>
+            <Grid container spacing={4} sx={{ mb: 4 }}>
+              <Grid item xs={12} sm={6} md={4}>
                 <Controller
                   name="nombres"
                   control={control}
@@ -203,8 +120,9 @@ export default function VistaAgregarPaciente() {
                     <TextField
                       {...field}
                       label="Nombres"
-                      fullWidth
+                      placeholder="Ejemplo: Juan Carlos"
                       size="medium"
+                      fullWidth
                       error={!!errors.nombres}
                       helperText={errors.nombres?.message}
                       InputProps={{
@@ -213,10 +131,17 @@ export default function VistaAgregarPaciente() {
                             <PersonOutlineIcon color="action" />
                           </InputAdornment>
                         ),
+                        sx: { 
+                          height: 56,
+                          fontSize: '1rem'
+                        },
                       }}
                       sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
+                        '& .MuiInputLabel-root': {
+                          fontSize: '1rem',
+                        },
+                        '& .MuiFormHelperText-root': {
+                          fontSize: '0.875rem',
                         }
                       }}
                     />
@@ -224,7 +149,7 @@ export default function VistaAgregarPaciente() {
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6} md={2.4}>
+              <Grid item xs={12} sm={6} md={4}>
                 <Controller
                   name="apellidos"
                   control={control}
@@ -233,8 +158,9 @@ export default function VistaAgregarPaciente() {
                     <TextField
                       {...field}
                       label="Apellidos"
-                      fullWidth
+                      placeholder="Ejemplo: Pérez Gómez"
                       size="medium"
+                      fullWidth
                       error={!!errors.apellidos}
                       helperText={errors.apellidos?.message}
                       InputProps={{
@@ -243,10 +169,17 @@ export default function VistaAgregarPaciente() {
                             <PersonOutlineIcon color="action" />
                           </InputAdornment>
                         ),
+                        sx: { 
+                          height: 56,
+                          fontSize: '1rem'
+                        },
                       }}
                       sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
+                        '& .MuiInputLabel-root': {
+                          fontSize: '1rem',
+                        },
+                        '& .MuiFormHelperText-root': {
+                          fontSize: '0.875rem',
                         }
                       }}
                     />
@@ -254,7 +187,7 @@ export default function VistaAgregarPaciente() {
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6} md={2.4}>
+              <Grid item xs={12} sm={6} md={4}>
                 <Controller
                   name="documento_identificacion"
                   control={control}
@@ -263,8 +196,9 @@ export default function VistaAgregarPaciente() {
                     <TextField
                       {...field}
                       label="DPI / Documento"
-                      fullWidth
+                      placeholder="Ejemplo: 1234 56789 0123"
                       size="medium"
+                      fullWidth
                       error={!!errors.documento_identificacion}
                       helperText={errors.documento_identificacion?.message}
                       InputProps={{
@@ -273,10 +207,17 @@ export default function VistaAgregarPaciente() {
                             <BadgeOutlinedIcon color="action" />
                           </InputAdornment>
                         ),
+                        sx: { 
+                          height: 56,
+                          fontSize: '1rem'
+                        },
                       }}
                       sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
+                        '& .MuiInputLabel-root': {
+                          fontSize: '1rem',
+                        },
+                        '& .MuiFormHelperText-root': {
+                          fontSize: '0.875rem',
                         }
                       }}
                     />
@@ -284,7 +225,7 @@ export default function VistaAgregarPaciente() {
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6} md={2.4}>
+              <Grid item xs={12} sm={6} md={4}>
                 <Controller
                   name="fecha_nacimiento"
                   control={control}
@@ -294,8 +235,8 @@ export default function VistaAgregarPaciente() {
                       {...field}
                       label="Fecha de Nacimiento"
                       type="date"
-                      fullWidth
                       size="medium"
+                      fullWidth
                       InputLabelProps={{ shrink: true }}
                       error={!!errors.fecha_nacimiento}
                       helperText={errors.fecha_nacimiento?.message}
@@ -305,10 +246,17 @@ export default function VistaAgregarPaciente() {
                             <CakeOutlinedIcon color="action" />
                           </InputAdornment>
                         ),
+                        sx: { 
+                          height: 56,
+                          fontSize: '1rem'
+                        },
                       }}
                       sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
+                        '& .MuiInputLabel-root': {
+                          fontSize: '1rem',
+                        },
+                        '& .MuiFormHelperText-root': {
+                          fontSize: '0.875rem',
                         }
                       }}
                     />
@@ -316,7 +264,7 @@ export default function VistaAgregarPaciente() {
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6} md={2.4}>
+              <Grid item xs={12} sm={6} md={4}>
                 <Controller
                   name="genero"
                   control={control}
@@ -326,18 +274,27 @@ export default function VistaAgregarPaciente() {
                       {...field}
                       label="Género"
                       select
-                      fullWidth
                       size="medium"
+                      fullWidth
                       error={!!errors.genero}
                       helperText={errors.genero?.message}
+                      InputProps={{
+                        sx: { 
+                          height: 56,
+                          fontSize: '1rem'
+                        },
+                      }}
                       sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
+                        '& .MuiInputLabel-root': {
+                          fontSize: '1rem',
+                        },
+                        '& .MuiFormHelperText-root': {
+                          fontSize: '0.875rem',
                         }
                       }}
                     >
                       {generos.map((g) => (
-                        <MenuItem key={g} value={g}>
+                        <MenuItem key={g} value={g} sx={{ fontSize: '1rem' }}>
                           {g}
                         </MenuItem>
                       ))}
@@ -347,23 +304,22 @@ export default function VistaAgregarPaciente() {
               </Grid>
             </Grid>
 
-            {/* Datos Adicionales y de Contacto */}
-            <Typography 
-              variant="subtitle2" 
-              sx={{ 
-                fontWeight: 600, 
-                color: '#3498db',
-                mb: 3,
+            {/* Datos Adicionales */}
+            <Typography
+              variant="subtitle2"
+              sx={{
+                fontWeight: 600,
+                color: '#1976d2',
+                mb: 2,
                 textTransform: 'uppercase',
                 fontSize: '0.75rem',
-                letterSpacing: 1
+                letterSpacing: 1,
               }}
             >
               Datos Adicionales y de Contacto
             </Typography>
 
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-              {/* Segunda fila: Tipo de Paciente, Teléfono, Dirección */}
+            <Grid container spacing={4} sx={{ mb: 4 }}>
               <Grid item xs={12} sm={6} md={4}>
                 <Controller
                   name="tipo_paciente"
@@ -374,18 +330,27 @@ export default function VistaAgregarPaciente() {
                       {...field}
                       label="Tipo de Paciente"
                       select
-                      fullWidth
                       size="medium"
+                      fullWidth
                       error={!!errors.tipo_paciente}
                       helperText={errors.tipo_paciente?.message}
+                      InputProps={{
+                        sx: { 
+                          height: 56,
+                          fontSize: '1rem'
+                        },
+                      }}
                       sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
+                        '& .MuiInputLabel-root': {
+                          fontSize: '1rem',
+                        },
+                        '& .MuiFormHelperText-root': {
+                          fontSize: '0.875rem',
                         }
                       }}
                     >
                       {tiposPaciente.map((tp) => (
-                        <MenuItem key={tp} value={tp}>
+                        <MenuItem key={tp} value={tp} sx={{ fontSize: '1rem' }}>
                           {tp}
                         </MenuItem>
                       ))}
@@ -402,18 +367,26 @@ export default function VistaAgregarPaciente() {
                     <TextField
                       {...field}
                       label="Teléfono"
-                      fullWidth
+                      placeholder="Ejemplo: +502 1234 5678"
                       size="medium"
+                      fullWidth
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
                             <PhoneOutlinedIcon color="action" />
                           </InputAdornment>
                         ),
+                        sx: { 
+                          height: 56,
+                          fontSize: '1rem'
+                        },
                       }}
                       sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
+                        '& .MuiInputLabel-root': {
+                          fontSize: '1rem',
+                        },
+                        '& .MuiFormHelperText-root': {
+                          fontSize: '0.875rem',
                         }
                       }}
                     />
@@ -429,18 +402,26 @@ export default function VistaAgregarPaciente() {
                     <TextField
                       {...field}
                       label="Dirección"
-                      fullWidth
+                      placeholder="Ejemplo: Calle 123, Zona 1, Ciudad"
                       size="medium"
+                      fullWidth
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
                             <HomeOutlinedIcon color="action" />
                           </InputAdornment>
                         ),
+                        sx: { 
+                          height: 56,
+                          fontSize: '1rem'
+                        },
                       }}
                       sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
+                        '& .MuiInputLabel-root': {
+                          fontSize: '1rem',
+                        },
+                        '& .MuiFormHelperText-root': {
+                          fontSize: '0.875rem',
                         }
                       }}
                     />
@@ -450,16 +431,26 @@ export default function VistaAgregarPaciente() {
             </Grid>
 
             {/* Botones */}
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', pt: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, mt: 3 }}>
               <Button
                 variant="outlined"
                 startIcon={<ClearIcon />}
                 onClick={limpiarFormulario}
-                sx={{ 
+                sx={{
                   borderRadius: 2,
                   textTransform: 'none',
                   fontWeight: 600,
-                  px: 3
+                  px: 6,
+                  py: 1.5,
+                  fontSize: '1rem',
+                  minHeight: 48,
+                  minWidth: 140,
+                  color: '#1976d2',
+                  borderColor: '#1976d2',
+                  '&:hover': {
+                    borderColor: '#145a86',
+                    backgroundColor: 'rgba(21, 101, 192, 0.08)',
+                  },
                 }}
               >
                 Limpiar
@@ -469,13 +460,16 @@ export default function VistaAgregarPaciente() {
                 variant="contained"
                 startIcon={<SaveIcon />}
                 disabled={guardando}
-                sx={{ 
+                sx={{
                   borderRadius: 2,
                   textTransform: 'none',
                   fontWeight: 600,
-                  px: 4,
+                  px: 6,
                   py: 1.5,
-                  boxShadow: '0 4px 12px rgba(52, 152, 219, 0.3)'
+                  fontSize: '1rem',
+                  minHeight: 48,
+                  minWidth: 180,
+                  boxShadow: '0 4px 12px rgba(25, 118, 210, 0.4)',
                 }}
               >
                 {guardando ? 'Guardando...' : 'Guardar Paciente'}
@@ -484,151 +478,6 @@ export default function VistaAgregarPaciente() {
           </form>
         </CardContent>
       </Card>
-
-      {/* Lista de Pacientes */}
-      <Card 
-        elevation={0}
-        sx={{ 
-          borderRadius: 3,
-          border: '1px solid #e1e8ed'
-        }}
-      >
-        <CardHeader
-          title={
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <PeopleIcon color="primary" />
-                <Typography variant="h6" component="h2" fontWeight={600}>
-                  Pacientes Registrados
-                </Typography>
-              </Box>
-              <Chip 
-                label={`${pacientes.length} registros`} 
-                color="primary" 
-                variant="outlined"
-                size="small"
-              />
-            </Box>
-          }
-          sx={{ 
-            backgroundColor: '#f8f9fa',
-            borderBottom: '1px solid #e1e8ed'
-          }}
-        />
-        <CardContent sx={{ p: 0 }}>
-          <TableContainer sx={{ maxHeight: '500px' }}>
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 80 }}>ID</TableCell>
-                  <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 150 }}>Nombres</TableCell>
-                  <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 150 }}>Apellidos</TableCell>
-                  <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 100 }}>Género</TableCell>
-                  <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 150 }}>DPI / Documento</TableCell>
-                  <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 150 }}>Fecha de Nacimiento</TableCell>
-                  <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 120 }}>Teléfono</TableCell>
-                  <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 200 }}>Dirección</TableCell>
-                  <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 140 }}>Tipo de Paciente</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {cargando ? (
-                  <TableRow>
-                    <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
-                      <Typography color="text.secondary">
-                        Cargando pacientes...
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : pacientes.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
-                      <Typography color="text.secondary">
-                        No hay pacientes registrados
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  pacientes.map((p) => (
-                    <TableRow 
-                      key={p.id}
-                      sx={{ '&:hover': { backgroundColor: '#f8f9fa' } }}
-                    >
-                      <TableCell>
-                        <Chip 
-                          label={p.id} 
-                          size="small" 
-                          variant="outlined"
-                          color="default"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight={600}>
-                          {p.nombres}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight={600}>
-                          {p.apellidos}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {p.genero}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontFamily="monospace">
-                          {p.documento_identificacion || 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {p.fecha_nacimiento ? new Date(p.fecha_nacimiento).toLocaleDateString() : 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontFamily="monospace">
-                          {p.telefono || 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {p.direccion || 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={p.tipo_paciente} 
-                          size="small"
-                          color={obtenerColorTipo(p.tipo_paciente)}
-                          variant="outlined"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </CardContent>
-      </Card>
-
-      {/* Snackbar para alertas */}
-      <Snackbar
-        open={alerta.open}
-        autoHideDuration={6000}
-        onClose={cerrarAlerta}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={cerrarAlerta} 
-          severity={alerta.tipo} 
-          sx={{ width: '100%' }}
-        >
-          {alerta.mensaje}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </>
   );
 }

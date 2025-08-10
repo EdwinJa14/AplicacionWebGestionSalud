@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Button,
   Card,
   CardContent,
   CardHeader,
@@ -19,17 +18,19 @@ import {
   AlertTitle,
   IconButton,
   Tooltip,
+  Snackbar,
 } from '@mui/material';
 
 // Iconos
 import PeopleIcon from '@mui/icons-material/People';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import RefreshIcon from '@mui/icons-material/Refresh';
 
 import * as pacienteService from '../../../servicios/serviciosAdmin/serviciosPacientes.js';
 import ModalEditarPaciente from '../../componentes/componentesAdmin/modales/modalEditarPacientes.jsx';
+
+// Importa tu componente VistaAgregarPaciente
+import VistaAgregarPaciente from '../vistaAdministrador/vistaAgregarPaciente.jsx';
 
 // Función para calcular edad
 function calcularEdad(fechaNacimiento) {
@@ -72,6 +73,13 @@ export default function VistaPacientes() {
   const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
   const [pacienteAEditar, setPacienteAEditar] = useState(null);
 
+  // Estado para notificaciones
+  const [notificacion, setNotificacion] = useState({ 
+    open: false, 
+    mensaje: '', 
+    tipo: 'success' 
+  });
+
   useEffect(() => {
     cargarPacientes();
   }, []);
@@ -98,9 +106,10 @@ export default function VistaPacientes() {
     try {
       await pacienteService.update(datosEditados.id, datosEditados);
       setMostrarModalEditar(false);
-      cargarPacientes();
+      await cargarPacientes();
+      mostrarNotificacion('Paciente actualizado exitosamente', 'success');
     } catch (error) {
-      alert("Error al guardar cambios: " + error.message);
+      mostrarNotificacion('Error al actualizar paciente: ' + error.message, 'error');
     }
   };
 
@@ -108,15 +117,28 @@ export default function VistaPacientes() {
     if (window.confirm(`¿Está seguro de que desea marcar como inactivo a ${nombre}? Esta acción no eliminará el registro permanentemente.`)) {
       try {
         await pacienteService.remove(id);
-        cargarPacientes();
+        await cargarPacientes();
+        mostrarNotificacion(`${nombre} ha sido marcado como inactivo`, 'info');
       } catch (error) {
-        alert(`Error al eliminar: ${error.message}`);
+        mostrarNotificacion('Error al eliminar: ' + error.message, 'error');
       }
     }
   };
 
-  const irAAgregarPaciente = () => {
-    navigate('/pacientes/agregar');
+  // Función para manejar cuando se agrega un paciente
+  const handlePacienteAgregado = async () => {
+    await cargarPacientes();
+    mostrarNotificacion('¡Paciente registrado exitosamente!', 'success');
+  };
+
+  // Función para mostrar notificaciones
+  const mostrarNotificacion = (mensaje, tipo = 'success') => {
+    setNotificacion({ open: true, mensaje, tipo });
+  };
+
+  // Función para cerrar notificaciones
+  const cerrarNotificacion = () => {
+    setNotificacion({ ...notificacion, open: false });
   };
 
   return (
@@ -126,7 +148,7 @@ export default function VistaPacientes() {
       p: { xs: 2, md: 4 }
     }}>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: 3 }}>
         <Typography 
           variant="h4" 
           component="h1" 
@@ -147,47 +169,15 @@ export default function VistaPacientes() {
         </Typography>
       </Box>
 
-      {/* Botón Agregar y Error/Loading */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Button
-          variant="contained"
-          startIcon={<PersonAddIcon />}
-          onClick={irAAgregarPaciente}
-          sx={{
-            borderRadius: 3,
-            textTransform: 'none',
-            fontWeight: 600,
-            px: 4,
-            py: 1.5,
-            boxShadow: '0 4px 12px rgba(52, 152, 219, 0.3)',
-            fontSize: '16px'
-          }}
-        >
-          Agregar Nuevo Paciente
-        </Button>
-
-        <Tooltip title="Actualizar lista">
-          <IconButton 
-            onClick={cargarPacientes} 
-            sx={{ 
-              backgroundColor: '#f8f9fa',
-              '&:hover': { backgroundColor: '#e9ecef' }
-            }}
-          >
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
-      </Box>
-
       {/* Error Alert */}
       {error && (
         <Alert 
           severity="error" 
           sx={{ mb: 3, borderRadius: 2 }}
           action={
-            <Button color="inherit" size="small" onClick={cargarPacientes}>
+            <button color="inherit" size="small" onClick={cargarPacientes} style={{background:'none', border:'none', cursor:'pointer'}}>
               Reintentar
-            </Button>
+            </button>
           }
         >
           <AlertTitle>Error</AlertTitle>
@@ -213,13 +203,21 @@ export default function VistaPacientes() {
         onGuardar={guardarEdicionPaciente}
       />
 
+      {/* VistaAgregarPaciente - con callback para actualizar lista */}
+      {!cargando && !error && (
+        <Box sx={{ mb: 2 }}>
+          <VistaAgregarPaciente onPacienteAgregado={handlePacienteAgregado} />
+        </Box>
+      )}
+
       {/* Tabla de Pacientes */}
       {!cargando && !error && (
         <Card 
-          elevation={0}
+          elevation={2}
           sx={{ 
             borderRadius: 3,
-            border: '1px solid #e1e8ed'
+            border: '1px solid #e1e8ed',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
           }}
         >
           <CardHeader
@@ -241,53 +239,49 @@ export default function VistaPacientes() {
             }
             sx={{ 
               backgroundColor: '#f8f9fa',
-              borderBottom: '1px solid #e1e8ed'
+              borderBottom: '1px solid #e1e8ed',
+              py: 2
             }}
           />
           <CardContent sx={{ p: 0 }}>
             {pacientes.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 8 }}>
-                <PeopleIcon sx={{ fontSize: 80, color: '#ccc', mb: 2 }} />
+              <Box sx={{ textAlign: 'center', py: 6 }}>
+                <PeopleIcon sx={{ fontSize: 64, color: '#ccc', mb: 2 }} />
                 <Typography variant="h6" color="text.secondary" gutterBottom>
                   No hay pacientes registrados
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Comience agregando su primer paciente al sistema
                 </Typography>
-                <Button
-                  variant="contained"
-                  startIcon={<PersonAddIcon />}
-                  onClick={irAAgregarPaciente}
-                  sx={{ borderRadius: 2 }}
-                >
-                  Agregar Primer Paciente
-                </Button>
               </Box>
             ) : (
-              <TableContainer sx={{ maxHeight: '600px' }}>
-                <Table stickyHeader>
+              <TableContainer sx={{ maxHeight: '500px' }}>
+                <Table stickyHeader size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 80 }}>ID</TableCell>
-                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 150 }}>Nombres</TableCell>
-                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 150 }}>Apellidos</TableCell>
-                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 150 }}>DPI</TableCell>
-                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 130 }}>F. Nacimiento</TableCell>
-                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 80 }}>Edad</TableCell>
-                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 100 }}>Género</TableCell>
-                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 140 }}>Tipo Paciente</TableCell>
-                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 200 }}>Dirección</TableCell>
-                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 120 }}>Teléfono</TableCell>
-                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', minWidth: 120 }}>Acciones</TableCell>
+                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', fontSize: '0.875rem', py: 1.5 }}>ID</TableCell>
+                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', fontSize: '0.875rem', py: 1.5 }}>Nombres</TableCell>
+                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', fontSize: '0.875rem', py: 1.5 }}>Apellidos</TableCell>
+                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', fontSize: '0.875rem', py: 1.5 }}>DPI</TableCell>
+                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', fontSize: '0.875rem', py: 1.5 }}>F. Nacimiento</TableCell>
+                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', fontSize: '0.875rem', py: 1.5 }}>Edad</TableCell>
+                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', fontSize: '0.875rem', py: 1.5 }}>Género</TableCell>
+                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', fontSize: '0.875rem', py: 1.5 }}>Tipo Paciente</TableCell>
+                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', fontSize: '0.875rem', py: 1.5 }}>Dirección</TableCell>
+                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', fontSize: '0.875rem', py: 1.5 }}>Teléfono</TableCell>
+                      <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa', fontSize: '0.875rem', py: 1.5 }}>Acciones</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {pacientes.map((p) => (
                       <TableRow 
                         key={p.id}
-                        sx={{ '&:hover': { backgroundColor: '#f8f9fa' } }}
+                        sx={{ 
+                          '&:hover': { backgroundColor: '#f8f9fa' },
+                          '&:nth-of-type(even)': { backgroundColor: '#fafbfc' }
+                        }}
                       >
-                        <TableCell>
+                        <TableCell sx={{ py: 1 }}>
                           <Chip 
                             label={p.id} 
                             size="small" 
@@ -295,32 +289,32 @@ export default function VistaPacientes() {
                             color="default"
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ py: 1 }}>
                           <Typography variant="body2" fontWeight={600}>
                             {p.nombres}
                           </Typography>
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ py: 1 }}>
                           <Typography variant="body2" fontWeight={600}>
                             {p.apellidos}
                           </Typography>
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ py: 1 }}>
                           <Typography variant="body2" fontFamily="monospace">
                             {p.documento_identificacion || 'N/A'}
                           </Typography>
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ py: 1 }}>
                           <Typography variant="body2">
                             {new Date(p.fecha_nacimiento).toLocaleDateString()}
                           </Typography>
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ py: 1 }}>
                           <Typography variant="body2" fontWeight={500}>
                             {calcularEdad(p.fecha_nacimiento)} años
                           </Typography>
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ py: 1 }}>
                           <Chip 
                             label={p.genero} 
                             size="small"
@@ -328,7 +322,7 @@ export default function VistaPacientes() {
                             variant="outlined"
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ py: 1 }}>
                           <Chip 
                             label={p.tipo_paciente} 
                             size="small"
@@ -336,11 +330,11 @@ export default function VistaPacientes() {
                             variant="outlined"
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ py: 1 }}>
                           <Typography 
                             variant="body2" 
                             sx={{ 
-                              maxWidth: 200, 
+                              maxWidth: 150, 
                               overflow: 'hidden', 
                               textOverflow: 'ellipsis', 
                               whiteSpace: 'nowrap' 
@@ -349,13 +343,13 @@ export default function VistaPacientes() {
                             {p.direccion || 'N/A'}
                           </Typography>
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ py: 1 }}>
                           <Typography variant="body2" fontFamily="monospace">
                             {p.telefono || 'N/A'}
                           </Typography>
                         </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', gap: 1 }}>
+                        <TableCell sx={{ py: 1 }}>
+                          <Box sx={{ display: 'flex', gap: 0.5 }}>
                             <Tooltip title="Editar paciente">
                               <IconButton
                                 size="small"
@@ -363,7 +357,9 @@ export default function VistaPacientes() {
                                 sx={{
                                   backgroundColor: '#fff3cd',
                                   color: '#856404',
-                                  '&:hover': { backgroundColor: '#ffeaa7' }
+                                  '&:hover': { backgroundColor: '#ffeaa7' },
+                                  minWidth: 32,
+                                  height: 32
                                 }}
                               >
                                 <EditIcon fontSize="small" />
@@ -376,7 +372,9 @@ export default function VistaPacientes() {
                                 sx={{
                                   backgroundColor: '#f8d7da',
                                   color: '#721c24',
-                                  '&:hover': { backgroundColor: '#f5c6cb' }
+                                  '&:hover': { backgroundColor: '#f5c6cb' },
+                                  minWidth: 32,
+                                  height: 32
                                 }}
                               >
                                 <DeleteIcon fontSize="small" />
@@ -393,6 +391,28 @@ export default function VistaPacientes() {
           </CardContent>
         </Card>
       )}
+
+      {/* Snackbar para notificaciones */}
+      <Snackbar
+        open={notificacion.open}
+        autoHideDuration={4000}
+        onClose={cerrarNotificacion}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{ zIndex: 9999 }}
+      >
+        <Alert 
+          onClose={cerrarNotificacion} 
+          severity={notificacion.tipo} 
+          sx={{ 
+            width: '100%',
+            fontSize: '0.95rem',
+            fontWeight: 500,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          }}
+        >
+          {notificacion.mensaje}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
