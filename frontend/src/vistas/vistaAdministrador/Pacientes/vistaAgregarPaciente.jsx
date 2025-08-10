@@ -24,7 +24,7 @@ import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
 import SaveIcon from '@mui/icons-material/Save';
 import ClearIcon from '@mui/icons-material/Clear';
 
-import * as pacienteService from '../../../servicios/serviciosAdmin/serviciosPacientes';
+import * as pacienteService from '../../../../servicios/serviciosAdmin/serviciosPacientes.js';
 
 const generos = ['Masculino', 'Femenino', 'Otro'];
 const tiposPaciente = ['General', 'Cronico', 'Prenatal'];

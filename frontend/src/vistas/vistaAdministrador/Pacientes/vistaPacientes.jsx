@@ -26,11 +26,10 @@ import PeopleIcon from '@mui/icons-material/People';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-import * as pacienteService from '../../../servicios/serviciosAdmin/serviciosPacientes.js';
-import ModalEditarPaciente from '../../componentes/componentesAdmin/modales/modalEditarPacientes.jsx';
+import * as pacienteService from '../../../../servicios/serviciosAdmin/serviciosPacientes.js';
+import ModalEditarPaciente from '../../../componentes/componentesAdmin/modales/modalEditarPacientes.jsx';
 
-// Importa tu componente VistaAgregarPaciente
-import VistaAgregarPaciente from '../vistaAdministrador/vistaAgregarPaciente.jsx';
+import VistaAgregarPaciente from '../Pacientes/vistaAgregarPaciente.jsx';
 
 // Función para calcular edad
 function calcularEdad(fechaNacimiento) {
