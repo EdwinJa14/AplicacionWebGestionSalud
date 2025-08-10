@@ -1,8 +1,7 @@
 # Dependencias de Node.js
 node_modules/
 
-# Archivos de configuración de dependencias de npm/yarn/pnpm
-package-lock.json
+# Archivos de configuración de dependencias de yarn/pnpm (si usas)
 yarn.lock
 pnpm-lock.yaml
 
