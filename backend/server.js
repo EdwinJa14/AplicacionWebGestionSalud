@@ -6,6 +6,8 @@ import './config/db.js';
 
 import personalRoutes from './src/rutas/rutasAdminsitrador/rutaPersonal.js';
 import pacienteRoutes from './src/rutas/rutasAdminsitrador/rutaPaciente.js'; 
+import usuarioRoutes from './src/rutas/rutasAdminsitrador/rutaUsuarios.js';  
+
 dotenv.config();
 
 const app = express();
@@ -43,6 +45,8 @@ app.get('/api/test', (req, res) => {
 // Rutas del CRUD
 app.use('/api/personal', personalRoutes);
 app.use('/api/pacientes', pacienteRoutes); // Esta ruta ya está agregada
+app.use('/api/usuarios', usuarioRoutes);  // Agrega la ruta de usuarios aquí
+
 
 // Manejo de rutas no encontradas
 app.use('*', (req, res) => {

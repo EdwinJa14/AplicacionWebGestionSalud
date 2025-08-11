@@ -1,24 +1,25 @@
 import pool from '../../../config/db.js';
 
-// Obtener todos los pacientes (sin el campo edad)
+// Obtener todos los pacientes
 export const getAll = async () => {
   const query = `
     SELECT 
       id, 
       nombres, 
       apellidos, 
+      dpi,
       fecha_nacimiento, 
       genero, 
       direccion, 
       telefono, 
       tipo_paciente, 
-      documento_identificacion,
       estado,
       usuario_ingreso,
       fecha_ingreso,
       usuario_modifica,
       fecha_modifica
     FROM pacientes 
+    WHERE estado = true
     ORDER BY fecha_ingreso DESC`;
     
   try {
@@ -30,26 +31,26 @@ export const getAll = async () => {
   }
 };
 
-// Obtener paciente por ID (sin edad)
+// Obtener paciente por ID
 export const getById = async (id) => {
   const query = `
     SELECT 
       id, 
       nombres, 
       apellidos, 
+      dpi,
       fecha_nacimiento, 
       genero, 
       direccion, 
       telefono, 
       tipo_paciente, 
-      documento_identificacion,
       estado,
       usuario_ingreso,
       fecha_ingreso,
       usuario_modifica,
       fecha_modifica
     FROM pacientes 
-    WHERE id = $1`;
+    WHERE id = $1 AND estado = true`;
     
   try {
     const { rows } = await pool.query(query, [id]);
@@ -60,20 +61,20 @@ export const getById = async (id) => {
   }
 };
 
-// Crear nuevo paciente (sin edad)
+// Crear nuevo paciente
 export const create = async (pacienteData) => {
-  const { nombres, apellidos, fecha_nacimiento, genero, direccion, telefono, tipo_paciente, documento_identificacion, estado } = pacienteData;
+  const { nombres, apellidos, dpi, fecha_nacimiento, genero, direccion, telefono, tipo_paciente, estado } = pacienteData;
 
   const query = `
     INSERT INTO pacientes (
       nombres, 
       apellidos, 
+      dpi,
       fecha_nacimiento, 
       genero, 
       direccion, 
       telefono, 
       tipo_paciente, 
-      documento_identificacion,
       estado, 
       usuario_ingreso, 
       fecha_ingreso
@@ -83,12 +84,12 @@ export const create = async (pacienteData) => {
       id, 
       nombres, 
       apellidos, 
+      dpi,
       fecha_nacimiento, 
       genero, 
       direccion, 
       telefono, 
       tipo_paciente, 
-      documento_identificacion,
       estado,
       usuario_ingreso,
       fecha_ingreso,
@@ -98,12 +99,12 @@ export const create = async (pacienteData) => {
   const values = [
     nombres, 
     apellidos, 
+    dpi, // Campo obligatorio
     fecha_nacimiento, 
     genero || 'Masculino',
     direccion, 
     telefono, 
     tipo_paciente || 'General', 
-    documento_identificacion,
     estado !== undefined ? estado : true
   ];
 
@@ -116,35 +117,35 @@ export const create = async (pacienteData) => {
   }
 };
 
-// Actualizar paciente (sin edad)
+// Actualizar paciente
 export const update = async (id, pacienteData) => {
-  const { nombres, apellidos, fecha_nacimiento, genero, direccion, telefono, tipo_paciente, documento_identificacion, estado } = pacienteData;
+  const { nombres, apellidos, dpi, fecha_nacimiento, genero, direccion, telefono, tipo_paciente, estado } = pacienteData;
 
   const query = `
     UPDATE pacientes 
     SET 
       nombres = COALESCE($1, nombres),
       apellidos = COALESCE($2, apellidos),
-      fecha_nacimiento = COALESCE($3, fecha_nacimiento),
-      genero = COALESCE($4, genero),
-      direccion = COALESCE($5, direccion),
-      telefono = COALESCE($6, telefono),
-      tipo_paciente = COALESCE($7, tipo_paciente),
-      documento_identificacion = COALESCE($8, documento_identificacion),
+      dpi = COALESCE($3, dpi),
+      fecha_nacimiento = COALESCE($4, fecha_nacimiento),
+      genero = COALESCE($5, genero),
+      direccion = COALESCE($6, direccion),
+      telefono = COALESCE($7, telefono),
+      tipo_paciente = COALESCE($8, tipo_paciente),
       estado = COALESCE($9, estado),
       usuario_modifica = 1,
       fecha_modifica = CURRENT_TIMESTAMP
-    WHERE id = $10
+    WHERE id = $10 AND estado = true
     RETURNING 
       id, 
       nombres, 
       apellidos, 
+      dpi,
       fecha_nacimiento, 
       genero, 
       direccion, 
       telefono, 
       tipo_paciente, 
-      documento_identificacion,
       estado,
       usuario_ingreso,
       fecha_ingreso,
@@ -154,12 +155,12 @@ export const update = async (id, pacienteData) => {
   const values = [
     nombres, 
     apellidos, 
+    dpi,
     fecha_nacimiento, 
     genero, 
     direccion, 
     telefono, 
     tipo_paciente,
-    documento_identificacion,
     estado, 
     id
   ];
@@ -173,7 +174,7 @@ export const update = async (id, pacienteData) => {
   }
 };
 
-// Marcar como inactivo (sin edad)
+// Marcar como inactivo
 export const remove = async (id) => {
   const query = `
     UPDATE pacientes 
@@ -186,12 +187,12 @@ export const remove = async (id) => {
       id, 
       nombres, 
       apellidos, 
+      dpi,
       fecha_nacimiento, 
       genero, 
       direccion, 
       telefono, 
       tipo_paciente, 
-      documento_identificacion,
       estado,
       usuario_ingreso,
       fecha_ingreso,
@@ -203,6 +204,25 @@ export const remove = async (id) => {
     return rows[0];
   } catch (error) {
     console.error(`Error al marcar como inactivo paciente con id ${id}:`, error);
+    throw error;
+  }
+};
+
+// Verificar si DPI ya existe
+export const existsByDpi = async (dpi, excludeId = null) => {
+  let query = `SELECT id FROM pacientes WHERE dpi = $1`;
+  const values = [dpi];
+  
+  if (excludeId) {
+    query += ` AND id != $2`;
+    values.push(excludeId);
+  }
+  
+  try {
+    const { rows } = await pool.query(query, values);
+    return rows.length > 0;
+  } catch (error) {
+    console.error('Error al verificar DPI existente:', error);
     throw error;
   }
 };

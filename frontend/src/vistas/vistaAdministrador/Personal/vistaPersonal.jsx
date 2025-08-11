@@ -33,22 +33,16 @@ import ModalEditarPersonal from '../../../componentes/componentesAdmin/modales/m
 import VistaAgregarPersonal from '../Personal/vistaAgregarPersonal.jsx';
 
 // Datos de configuración
-const cargos = ['Doctor', 'Enfermero', 'Administrador', 'Recepcionista', 'Técnico', 'Otro'];
-const estados = ['Activo', 'Inactivo'];
-
-// Función para obtener color del chip según el estado
-const obtenerColorEstado = (estado) => {
-  return estado ? 'success' : 'error';
-};
+const cargos = ['Médico General', 'Enfermera Jefe', 'Administradora', 'Enfermero', 'Auxiliar', 'Otro'];
 
 // Función para obtener color del chip según el cargo
 const obtenerColorCargo = (cargo) => {
   switch (cargo) {
-    case 'Doctor': return 'primary';
-    case 'Enfermero': return 'secondary';
-    case 'Administrador': return 'warning';
-    case 'Recepcionista': return 'info';
-    case 'Técnico': return 'success';
+    case 'Médico General': return 'primary';
+    case 'Enfermera Jefe': return 'secondary';
+    case 'Administradora': return 'warning';
+    case 'Enfermero': return 'info';
+    case 'Auxiliar': return 'success';
     default: return 'default';
   }
 };
@@ -93,7 +87,10 @@ export default function VistaPersonal() {
 
   const guardarEdicionPersonal = async (datosEditados) => {
     try {
-      const dataToSend = { ...datosEditados, estado: datosEditados.estado === 'Activo' };
+      // Solo enviar los datos necesarios, sin estado
+      const { nombres, apellidos, cargo, dpi, telefono } = datosEditados;
+      const dataToSend = { nombres, apellidos, cargo, dpi, telefono };
+      
       await personalService.update(datosEditados.id, dataToSend);
       setMostrarModalEditar(false);
       await cargarPersonal();
@@ -181,7 +178,6 @@ export default function VistaPersonal() {
         onClose={() => setMostrarModalEditar(false)}
         onGuardar={guardarEdicionPersonal}
         cargos={cargos}
-        estados={estados}
         guardando={false}
       />
 
@@ -234,9 +230,9 @@ export default function VistaPersonal() {
                       <TableCell sx={estilosPersonal.tableCellHeader}>Nombres</TableCell>
                       <TableCell sx={estilosPersonal.tableCellHeader}>Apellidos</TableCell>
                       <TableCell sx={estilosPersonal.tableCellHeader}>Cargo</TableCell>
-                      <TableCell sx={estilosPersonal.tableCellHeader}>Email</TableCell>
+                      <TableCell sx={estilosPersonal.tableCellHeader}>DPI</TableCell>
                       <TableCell sx={estilosPersonal.tableCellHeader}>Teléfono</TableCell>
-                      <TableCell sx={estilosPersonal.tableCellHeader}>Estado</TableCell>
+                      <TableCell sx={estilosPersonal.tableCellHeader}>Fecha Ingreso</TableCell>
                       <TableCell sx={estilosPersonal.tableCellHeader}>Acciones</TableCell>
                     </TableRow>
                   </TableHead>
@@ -274,7 +270,7 @@ export default function VistaPersonal() {
                         </TableCell>
                         <TableCell sx={estilosPersonal.tableCell}>
                           <Typography variant="body2" fontFamily="monospace">
-                            {p.email}
+                            {p.dpi || 'N/A'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={estilosPersonal.tableCell}>
@@ -283,12 +279,9 @@ export default function VistaPersonal() {
                           </Typography>
                         </TableCell>
                         <TableCell sx={estilosPersonal.tableCell}>
-                          <Chip 
-                            label={p.estado ? 'Activo' : 'Inactivo'} 
-                            size="small"
-                            color={obtenerColorEstado(p.estado)}
-                            variant="filled"
-                          />
+                          <Typography variant="body2" color="text.secondary">
+                            {p.fecha_ingreso ? new Date(p.fecha_ingreso).toLocaleDateString('es-GT') : 'N/A'}
+                          </Typography>
                         </TableCell>
                         <TableCell sx={estilosPersonal.tableCell}>
                           <Box sx={estilosPersonal.actionsContainer}>

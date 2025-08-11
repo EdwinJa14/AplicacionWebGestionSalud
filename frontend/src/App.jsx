@@ -6,7 +6,7 @@ import PanelPrincipal from './vistas/panelPrincipal.jsx';
 import Home from './vistas/Home.jsx';
 import VistaPersonal from './vistas/vistaAdministrador/Personal/vistaPersonal.jsx';
 import VistaPacientes from './vistas/vistaAdministrador/Pacientes/vistaPacientes.jsx';
-import VistaUsuarios from './vistas/vistaAdministrador/vistaUsuarios.jsx';
+import VistaUsuarios from './vistas/vistaAdministrador/Usuarios/vistaUsuarios.jsx';
 import VistaInventario from './vistas/vistaAdministrador/vistaInventario.jsx';
 
 

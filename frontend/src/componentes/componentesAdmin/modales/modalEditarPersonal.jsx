@@ -8,7 +8,6 @@ import { useForm, Controller } from 'react-hook-form';
 
 import CloseIcon from '@mui/icons-material/Close';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
@@ -30,23 +29,24 @@ import {
   saveButtonSx,
 } from '../../estilosComponentes/estilosModales/estilosModalEditarPersona';
 
+// Cargos por defecto en caso de que no se pasen como prop
+const cargosDefault = ['Médico General', 'Enfermera Jefe', 'Administradora', 'Enfermero', 'Auxiliar', 'Otro'];
+
 export default function ModalEditarPersonal({ 
   open, 
   onClose, 
   persona, 
   onGuardar, 
-  cargos, 
-  estados, 
+  cargos = cargosDefault, // Usar cargos por defecto si no se pasan
   guardando 
 }) {
   const { control, handleSubmit, reset, formState: { errors } } = useForm({
     defaultValues: {
       nombres: '',
       apellidos: '',
-      cargo: '',
-      email: '',
+      cargo: 'Médico General',
+      dpi: '',
       telefono: '',
-      estado: '',
     }
   });
 
@@ -56,9 +56,8 @@ export default function ModalEditarPersonal({
         nombres: persona.nombres || '',
         apellidos: persona.apellidos || '',
         cargo: persona.cargo || '',
-        email: persona.email || '',
+        dpi: persona.dpi || '',
         telefono: persona.telefono || '',
-        estado: persona.estado ? 'Activo' : 'Inactivo',
       });
     }
   }, [persona, reset]);
@@ -140,29 +139,28 @@ export default function ModalEditarPersonal({
               />
             </Grid>
 
-            {/* Email */}
+            {/* DPI */}
             <Grid item xs={12} sm={6}>
               <Controller
-                name="email"
+                name="dpi"
                 control={control}
                 rules={{
-                  required: 'El email es requerido',
+                  required: 'El DPI es requerido',
                   pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Email inválido',
+                    value: /^\d{13}$/,
+                    message: 'El DPI debe tener 13 dígitos',
                   },
                 }}
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Email"
-                    type="email"
+                    label="DPI"
                     fullWidth
                     size="medium"
-                    error={!!errors.email}
-                    helperText={errors.email?.message}
+                    error={!!errors.dpi}
+                    helperText={errors.dpi?.message}
                     InputProps={{
-                      startAdornment: <InputAdornment position="start"><EmailOutlinedIcon color="action" /></InputAdornment>
+                      startAdornment: <InputAdornment position="start"><BadgeOutlinedIcon color="action" /></InputAdornment>
                     }}
                     sx={inputSx}
                   />
@@ -190,71 +188,37 @@ export default function ModalEditarPersonal({
               />
             </Grid>
 
-            {/* Cargo y Estado */}
-            <Grid container item xs={12} spacing={0}>
-              <Grid item xs={12} sm={6} sx={dualFieldGeneroGridSx}>
-                <Controller
-                  name="cargo"
-                  control={control}
-                  rules={{ required: 'El cargo es requerido' }}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      label="Cargo"
-                      select
-                      fullWidth
-                      size="medium"
-                      error={!!errors.cargo}
-                      helperText={errors.cargo?.message}
-                      sx={{ ...inputSx, width: '116%', minWidth: 220 }}
-                      InputLabelProps={{ shrink: true }}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start" sx={iconWrapperSx}>
-                            <WorkOutlineIcon color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    >
-                      {cargos.map(cargo => (
-                        <MenuItem key={cargo} value={cargo}>{cargo}</MenuItem>
-                      ))}
-                    </TextField>
-                  )}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6} sx={dualFieldTipoPacienteGridSx}>
-                <Controller
-                  name="estado"
-                  control={control}
-                  rules={{ required: 'El estado es requerido' }}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      label="Estado"
-                      select
-                      fullWidth
-                      size="medium"
-                      error={!!errors.estado}
-                      helperText={errors.estado?.message}
-                      sx={{ ...inputSx, width: '116%', minWidth: 220 }}
-                      InputLabelProps={{ shrink: true }}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start" sx={iconWrapperSx}>
-                            <BadgeOutlinedIcon color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    >
-                      {estados.map(estado => (
-                        <MenuItem key={estado} value={estado}>{estado}</MenuItem>
-                      ))}
-                    </TextField>
-                  )}
-                />
-              </Grid>
+            {/* Cargo - Toma todo el ancho disponible */}
+            <Grid item xs={12}>
+              <Controller
+                name="cargo"
+                control={control}
+                rules={{ required: 'El cargo es requerido' }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Cargo"
+                    select
+                    fullWidth
+                    size="medium"
+                    error={!!errors.cargo}
+                    helperText={errors.cargo?.message}
+                    sx={inputSx}
+                    InputLabelProps={{ shrink: true }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start" sx={iconWrapperSx}>
+                          <WorkOutlineIcon color="action" />
+                        </InputAdornment>
+                      ),
+                    }}
+                  >
+                    {cargos.map(cargo => (
+                      <MenuItem key={cargo} value={cargo}>{cargo}</MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
             </Grid>
           </Grid>
         </DialogContent>

@@ -48,6 +48,7 @@ const obtenerColorTipo = (tipo) => {
   switch (tipo) {
     case 'General': return 'primary';
     case 'Cronico': return 'warning';
+    case 'Crónico': return 'warning'; // Agregado para manejar acentos
     case 'Prenatal': return 'success';
     default: return 'default';
   }
@@ -300,7 +301,7 @@ export default function VistaPacientes() {
                         </TableCell>
                         <TableCell sx={{ py: 1 }}>
                           <Typography variant="body2" fontFamily="monospace">
-                            {p.documento_identificacion || 'N/A'}
+                            {p.dpi || 'N/A'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ py: 1 }}>

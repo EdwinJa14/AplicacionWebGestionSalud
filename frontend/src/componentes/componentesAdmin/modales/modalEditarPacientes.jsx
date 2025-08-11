@@ -38,7 +38,7 @@ export default function ModalEditarPaciente({ visible, paciente, onClose, onGuar
     defaultValues: {
       nombres: '',
       apellidos: '',
-      documento_identificacion: '',
+      dpi: '', // CAMBIADO: de documento_identificacion a dpi
       fecha_nacimiento: '',
       genero: '',
       tipo_paciente: '',
@@ -52,7 +52,7 @@ export default function ModalEditarPaciente({ visible, paciente, onClose, onGuar
       reset({
         nombres: paciente.nombres || '',
         apellidos: paciente.apellidos || '',
-        documento_identificacion: paciente.documento_identificacion || '',
+        dpi: paciente.dpi || '', // CAMBIADO: de documento_identificacion a dpi
         fecha_nacimiento: paciente.fecha_nacimiento?.split('T')[0] || '',
         genero: paciente.genero || '',
         tipo_paciente: paciente.tipo_paciente || '',
@@ -139,10 +139,10 @@ export default function ModalEditarPaciente({ visible, paciente, onClose, onGuar
               />
             </Grid>
 
-            {/* Documento */}
+            {/* Documento - CAMPO CORREGIDO */}
             <Grid item xs={12} sm={6}>
               <Controller
-                name="documento_identificacion"
+                name="dpi" // CAMBIADO: de documento_identificacion a dpi
                 control={control}
                 rules={{ required: 'El DPI es requerido' }}
                 render={({ field }) => (
@@ -151,8 +151,8 @@ export default function ModalEditarPaciente({ visible, paciente, onClose, onGuar
                     label="DPI / Documento"
                     fullWidth
                     size="medium"
-                    error={!!errors.documento_identificacion}
-                    helperText={errors.documento_identificacion?.message}
+                    error={!!errors.dpi} // CAMBIADO: de documento_identificacion a dpi
+                    helperText={errors.dpi?.message} // CAMBIADO: de documento_identificacion a dpi
                     InputProps={{
                       startAdornment: <InputAdornment position="start"><BadgeOutlinedIcon color="action" /></InputAdornment>
                     }}

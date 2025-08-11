@@ -1,5 +1,12 @@
 import * as PacienteModel from '../../modelo/modelosAdministrador/modeloPacientes.js';
 
+// Función para validar formato DPI guatemalteco
+const validarDPI = (dpi) => {
+  // DPI guatemalteco: 13 dígitos
+  const dpiRegex = /^\d{13}$/;
+  return dpiRegex.test(dpi);
+};
+
 // Obtener todos los pacientes
 export const getAllPacientes = async (req, res) => {
   try {
@@ -30,6 +37,7 @@ export const getPacienteById = async (req, res) => {
   try {
     const { id } = req.params;
     const paciente = await PacienteModel.getById(id);
+    
     if (!paciente) {
       return res.status(404).json({
         success: false,
@@ -59,21 +67,40 @@ export const createPaciente = async (req, res) => {
     const {
       nombres,
       apellidos,
+      dpi,
       fecha_nacimiento,
       genero,
       direccion,
       telefono,
-      tipo_paciente,
-      documento_identificacion
+      tipo_paciente
     } = req.body;
 
-    if (!nombres || !apellidos || !fecha_nacimiento) {
+    // Validaciones obligatorias
+    if (!nombres || !apellidos || !dpi || !fecha_nacimiento) {
       return res.status(400).json({
         success: false,
-        message: 'Los campos nombres, apellidos y fecha de nacimiento son obligatorios.'
+        message: 'Los campos nombres, apellidos, DPI y fecha de nacimiento son obligatorios.'
       });
     }
 
+    // Validar formato DPI
+    if (!validarDPI(dpi)) {
+      return res.status(400).json({
+        success: false,
+        message: 'El DPI debe tener exactamente 13 dígitos.'
+      });
+    }
+
+    // Verificar si el DPI ya existe
+    const dpiExiste = await PacienteModel.existsByDpi(dpi);
+    if (dpiExiste) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ya existe un paciente registrado con este DPI.'
+      });
+    }
+
+    // Validar género
     const generosValidos = ['Masculino', 'Femenino', 'Otro'];
     if (genero && !generosValidos.includes(genero)) {
       return res.status(400).json({
@@ -82,23 +109,25 @@ export const createPaciente = async (req, res) => {
       });
     }
 
-    const tiposValidos = ['General', 'Cronico', 'Prenatal'];
-    if (tipo_paciente && !tiposValidos.includes(tipo_paciente)) {
+    // Validar fecha de nacimiento
+    const fechaNac = new Date(fecha_nacimiento);
+    const hoy = new Date();
+    if (fechaNac > hoy) {
       return res.status(400).json({
         success: false,
-        message: 'El tipo de paciente debe ser: General, Cronico o Prenatal.'
+        message: 'La fecha de nacimiento no puede ser futura.'
       });
     }
 
     const nuevoPaciente = await PacienteModel.create({
       nombres: nombres.trim(),
       apellidos: apellidos.trim(),
+      dpi: dpi.trim(),
       fecha_nacimiento,
       genero: genero || 'Masculino',
       direccion: direccion?.trim() || null,
       telefono: telefono?.trim() || null,
-      tipo_paciente: tipo_paciente || 'General',
-      documento_identificacion: documento_identificacion?.trim() || null
+      tipo_paciente: tipo_paciente?.trim() || 'General'
     });
 
     const { estado, ...resto } = nuevoPaciente;
@@ -110,6 +139,15 @@ export const createPaciente = async (req, res) => {
     });
   } catch (error) {
     console.error('Error al crear paciente:', error);
+    
+    // Manejo específico de error de DPI duplicado
+    if (error.code === '23505' && error.constraint === 'pacientes_dpi_key') {
+      return res.status(400).json({
+        success: false,
+        message: 'Ya existe un paciente registrado con este DPI.'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor.'
@@ -124,14 +162,34 @@ export const updatePaciente = async (req, res) => {
     const {
       nombres,
       apellidos,
+      dpi,
       fecha_nacimiento,
       genero,
       direccion,
       telefono,
-      tipo_paciente,
-      documento_identificacion
+      tipo_paciente
     } = req.body;
 
+    // Validar formato DPI si se proporciona
+    if (dpi && !validarDPI(dpi)) {
+      return res.status(400).json({
+        success: false,
+        message: 'El DPI debe tener exactamente 13 dígitos.'
+      });
+    }
+
+    // Verificar si el DPI ya existe (excluyendo el paciente actual)
+    if (dpi) {
+      const dpiExiste = await PacienteModel.existsByDpi(dpi, id);
+      if (dpiExiste) {
+        return res.status(400).json({
+          success: false,
+          message: 'Ya existe otro paciente registrado con este DPI.'
+        });
+      }
+    }
+
+    // Validar género
     if (genero) {
       const generosValidos = ['Masculino', 'Femenino', 'Otro'];
       if (!generosValidos.includes(genero)) {
@@ -142,12 +200,14 @@ export const updatePaciente = async (req, res) => {
       }
     }
 
-    if (tipo_paciente) {
-      const tiposValidos = ['General', 'Cronico', 'Prenatal'];
-      if (!tiposValidos.includes(tipo_paciente)) {
+    // Validar fecha de nacimiento
+    if (fecha_nacimiento) {
+      const fechaNac = new Date(fecha_nacimiento);
+      const hoy = new Date();
+      if (fechaNac > hoy) {
         return res.status(400).json({
           success: false,
-          message: 'El tipo de paciente debe ser: General, Cronico o Prenatal.'
+          message: 'La fecha de nacimiento no puede ser futura.'
         });
       }
     }
@@ -155,12 +215,12 @@ export const updatePaciente = async (req, res) => {
     const pacienteActualizado = await PacienteModel.update(id, {
       nombres: nombres?.trim(),
       apellidos: apellidos?.trim(),
+      dpi: dpi?.trim(),
       fecha_nacimiento,
       genero,
       direccion: direccion?.trim(),
       telefono: telefono?.trim(),
-      tipo_paciente,
-      documento_identificacion: documento_identificacion?.trim()
+      tipo_paciente: tipo_paciente?.trim()
     });
 
     if (!pacienteActualizado) {
@@ -179,6 +239,15 @@ export const updatePaciente = async (req, res) => {
     });
   } catch (error) {
     console.error('Error al actualizar paciente:', error);
+    
+    // Manejo específico de error de DPI duplicado
+    if (error.code === '23505' && error.constraint === 'pacientes_dpi_key') {
+      return res.status(400).json({
+        success: false,
+        message: 'Ya existe otro paciente registrado con este DPI.'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor.'

@@ -36,7 +36,7 @@ export default function VistaAgregarPaciente({ onPacienteAgregado }) {
     defaultValues: {
       nombres: '',
       apellidos: '',
-      documento_identificacion: '',
+      dpi: '', // CAMBIADO: de documento_identificacion a dpi
       fecha_nacimiento: '',
       genero: 'Masculino',
       tipo_paciente: 'Cronico',
@@ -189,7 +189,7 @@ export default function VistaAgregarPaciente({ onPacienteAgregado }) {
 
               <Grid item xs={12} sm={6} md={4}>
                 <Controller
-                  name="documento_identificacion"
+                  name="dpi" // CAMBIADO: de documento_identificacion a dpi
                   control={control}
                   rules={{ required: 'El DPI es requerido' }}
                   render={({ field }) => (
@@ -199,8 +199,8 @@ export default function VistaAgregarPaciente({ onPacienteAgregado }) {
                       placeholder="Ejemplo: 1234 56789 0123"
                       size="medium"
                       fullWidth
-                      error={!!errors.documento_identificacion}
-                      helperText={errors.documento_identificacion?.message}
+                      error={!!errors.dpi} // CAMBIADO: de documento_identificacion a dpi
+                      helperText={errors.dpi?.message} // CAMBIADO: de documento_identificacion a dpi
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
