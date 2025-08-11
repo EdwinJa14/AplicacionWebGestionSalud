@@ -19,37 +19,48 @@ import {
   IconButton,
   Tooltip,
   Snackbar,
+  Button,
 } from '@mui/material';
 
 // Iconos
 import PeopleIcon from '@mui/icons-material/People';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import BadgeIcon from '@mui/icons-material/Badge';
 
 import * as usuarioService from '../../../../servicios/serviciosAdmin/serviciosUsuarios.js';
 import ModalEditarUsuario from '../../../componentes/componentesAdmin/modales/modalEditarUsuarios.jsx';
+import ModalCrearUsuario from '../../../componentes/componentesAdmin/modales/modalCrearUsuario.jsx';
 import { estilosVistaUsuarios } from '../../estilosVistas/estilosUsuario/estiloUsuario.js';
-
-// Importar la vista agregar usuario cuando esté lista
-// import VistaAgregarUsuario from './vistaAgregarUsuario.jsx';
 
 // Función para obtener color del chip según el rol
 const obtenerColorRol = (rol) => {
-  switch (rol) {
-    case 'Administrador': return 'error';
-    case 'Doctor': return 'primary';
-    case 'Enfermero': return 'success';
-    case 'Recepcionista': return 'info';
-    default: return 'default';
+  switch (rol.toLowerCase()) {
+    case 'admin': 
+    case 'administrativo': return 'error';
+    case 'medico': return 'primary';
+    case 'enfermero': return 'success';
+    default: return 'info';
   }
 };
 
 export default function VistaUsuarios() {
   const navigate = useNavigate();
+  
+  // Estados para personal
+  const [personal, setPersonal] = useState([]);
+  const [personalSeleccionado, setPersonalSeleccionado] = useState(null);
+  
+  // Estados para usuarios registrados
   const [usuarios, setUsuarios] = useState([]);
+  
+  // Estados de carga y errores
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
 
+  // Estados para modales
+  const [mostrarModalCrear, setMostrarModalCrear] = useState(false);
   const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
   const [usuarioAEditar, setUsuarioAEditar] = useState(null);
 
@@ -61,19 +72,54 @@ export default function VistaUsuarios() {
   });
 
   useEffect(() => {
-    cargarUsuarios();
+    cargarDatos();
   }, []);
 
-  const cargarUsuarios = async () => {
+  const cargarDatos = async () => {
     try {
       setCargando(true);
       setError(null);
-      const data = await usuarioService.getAll();
-      setUsuarios(Array.isArray(data) ? data : []);
+      
+      // Cargar personal y usuarios en paralelo
+      const [personalData, usuariosData] = await Promise.all([
+        usuarioService.getAllPersonal(),
+        usuarioService.getAllUsuariosConDetalles()
+      ]);
+      
+      setPersonal(Array.isArray(personalData) ? personalData : []);
+      setUsuarios(Array.isArray(usuariosData) ? usuariosData : []);
     } catch (err) {
       setError(`Error al cargar la información: ${err.message}`);
     } finally {
       setCargando(false);
+    }
+  };
+
+  const seleccionarPersonal = (persona) => {
+    if (persona.tiene_usuario) {
+      mostrarNotificacion('Este personal ya tiene un usuario asignado', 'warning');
+      return;
+    }
+    setPersonalSeleccionado(persona);
+  };
+
+  const abrirModalCrearUsuario = () => {
+    if (!personalSeleccionado) {
+      mostrarNotificacion('Por favor seleccione un personal primero', 'warning');
+      return;
+    }
+    setMostrarModalCrear(true);
+  };
+
+  const handleCrearUsuario = async (datosUsuario) => {
+    try {
+      await usuarioService.create(datosUsuario);
+      setMostrarModalCrear(false);
+      setPersonalSeleccionado(null);
+      await cargarDatos();
+      mostrarNotificacion('Usuario creado exitosamente', 'success');
+    } catch (error) {
+      mostrarNotificacion('Error al crear usuario: ' + error.message, 'error');
     }
   };
 
@@ -84,9 +130,9 @@ export default function VistaUsuarios() {
 
   const guardarEdicionUsuario = async (datosEditados) => {
     try {
-      await usuarioService.update(datosEditados.id, datosEditados);
+      await usuarioService.update(datosEditados.usuario_id, datosEditados);
       setMostrarModalEditar(false);
-      await cargarUsuarios();
+      await cargarDatos();
       mostrarNotificacion('Usuario actualizado exitosamente', 'success');
     } catch (error) {
       mostrarNotificacion('Error al actualizar usuario: ' + error.message, 'error');
@@ -94,21 +140,15 @@ export default function VistaUsuarios() {
   };
 
   const handleEliminar = async (id, nombre) => {
-    if (window.confirm(`¿Está seguro de que desea eliminar a ${nombre}? Esta acción no se puede deshacer.`)) {
+    if (window.confirm(`¿Está seguro de que desea desactivar al usuario ${nombre}? Esta acción se puede revertir después.`)) {
       try {
         await usuarioService.remove(id);
-        await cargarUsuarios();
-        mostrarNotificacion(`${nombre} ha sido eliminado`, 'info');
+        await cargarDatos();
+        mostrarNotificacion(`Usuario ${nombre} ha sido desactivado`, 'info');
       } catch (error) {
-        mostrarNotificacion('Error al eliminar: ' + error.message, 'error');
+        mostrarNotificacion('Error al desactivar usuario: ' + error.message, 'error');
       }
     }
-  };
-
-  // Función para manejar cuando se agrega un usuario
-  const handleUsuarioAgregado = async () => {
-    await cargarUsuarios();
-    mostrarNotificacion('¡Usuario registrado exitosamente!', 'success');
   };
 
   // Función para mostrar notificaciones
@@ -147,7 +187,7 @@ export default function VistaUsuarios() {
             <button 
               color="inherit" 
               size="small" 
-              onClick={cargarUsuarios} 
+              onClick={cargarDatos} 
               style={{background:'none', border:'none', cursor:'pointer'}}
             >
               Reintentar
@@ -164,12 +204,22 @@ export default function VistaUsuarios() {
         <Box sx={estilosVistaUsuarios.loadingContainer}>
           <CircularProgress size={60} />
           <Typography variant="h6" sx={estilosVistaUsuarios.loadingText}>
-            Cargando información de usuarios...
+            Cargando información...
           </Typography>
         </Box>
       )}
 
-      {/* Modal Editar */}
+      {/* Modales */}
+      <ModalCrearUsuario
+        visible={mostrarModalCrear}
+        personalSeleccionado={personalSeleccionado}
+        onClose={() => {
+          setMostrarModalCrear(false);
+          setPersonalSeleccionado(null);
+        }}
+        onCrear={handleCrearUsuario}
+      />
+
       <ModalEditarUsuario
         visible={mostrarModalEditar}
         usuario={usuarioAEditar}
@@ -177,73 +227,79 @@ export default function VistaUsuarios() {
         onGuardar={guardarEdicionUsuario}
       />
 
-      {/* VistaAgregarUsuario - con callback para actualizar lista */}
-      {/* Descomentar cuando esté lista la vista agregar usuario
       {!cargando && !error && (
-        <Box sx={{ mb: 2 }}>
-          <VistaAgregarUsuario onUsuarioAgregado={handleUsuarioAgregado} />
-        </Box>
-      )}
-      */}
-
-      {/* Tabla de Usuarios */}
-      {!cargando && !error && (
-        <Card 
-          elevation={2}
-          sx={estilosVistaUsuarios.card}
-        >
-          <CardHeader
-            title={
-              <Box sx={estilosVistaUsuarios.cardHeaderTitle}>
-                <Box sx={estilosVistaUsuarios.cardHeaderLeft}>
-                  <PeopleIcon color="primary" />
-                  <Typography variant="h6" component="h2" fontWeight={600}>
-                    Usuarios Registrados
-                  </Typography>
+        <>
+          {/* Tabla de Personal */}
+          <Card elevation={2} sx={{...estilosVistaUsuarios.card, mb: 3}}>
+            <CardHeader
+              title={
+                <Box sx={estilosVistaUsuarios.cardHeaderTitle}>
+                  <Box sx={estilosVistaUsuarios.cardHeaderLeft}>
+                    <BadgeIcon color="primary" />
+                    <Typography variant="h6" component="h2" fontWeight={600}>
+                      Personal
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    <Chip 
+                      label={`${personal.length} registros`} 
+                      color="primary" 
+                      variant="outlined"
+                      size="small"
+                    />
+                    <Button
+                      variant="contained"
+                      startIcon={<PersonAddIcon />}
+                      onClick={abrirModalCrearUsuario}
+                      disabled={!personalSeleccionado}
+                      sx={{
+                        backgroundColor: personalSeleccionado ? '#2e7d32' : undefined,
+                        '&:hover': {
+                          backgroundColor: personalSeleccionado ? '#1b5e20' : undefined,
+                        }
+                      }}
+                    >
+                      Crear Usuario
+                    </Button>
+                  </Box>
                 </Box>
-                <Chip 
-                  label={`${usuarios.length} registros`} 
-                  color="primary" 
-                  variant="outlined"
-                  size="small"
-                />
-              </Box>
-            }
-            sx={estilosVistaUsuarios.cardHeader}
-          />
-          <CardContent sx={{ p: 0 }}>
-            {usuarios.length === 0 ? (
-              <Box sx={estilosVistaUsuarios.emptyState}>
-                <PeopleIcon sx={estilosVistaUsuarios.emptyIcon} />
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  No hay usuarios registrados
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Comience agregando su primer usuario al sistema
-                </Typography>
-              </Box>
-            ) : (
+              }
+              sx={estilosVistaUsuarios.cardHeader}
+            />
+            <CardContent sx={{ p: 0 }}>
               <TableContainer sx={estilosVistaUsuarios.tableContainer}>
                 <Table stickyHeader size="small">
                   <TableHead>
                     <TableRow>
                       <TableCell sx={estilosVistaUsuarios.tableCell}>ID</TableCell>
-                      <TableCell sx={estilosVistaUsuarios.tableCell}>Nombre de Usuario</TableCell>
-                      <TableCell sx={estilosVistaUsuarios.tableCell}>Rol</TableCell>
-                      <TableCell sx={estilosVistaUsuarios.tableCell}>Fecha Creación</TableCell>
+                      <TableCell sx={estilosVistaUsuarios.tableCell}>Nombres</TableCell>
+                      <TableCell sx={estilosVistaUsuarios.tableCell}>Apellidos</TableCell>
+                      <TableCell sx={estilosVistaUsuarios.tableCell}>Cargo</TableCell>
                       <TableCell sx={estilosVistaUsuarios.tableCell}>Estado</TableCell>
-                      <TableCell sx={estilosVistaUsuarios.tableCell}>Acciones</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {usuarios.map((usuario) => (
+                    {personal.map((persona) => (
                       <TableRow 
-                        key={usuario.id}
-                        sx={estilosVistaUsuarios.tableRowHover}
+                        key={persona.id}
+                        selected={personalSeleccionado?.id === persona.id}
+                        onClick={() => seleccionarPersonal(persona)}
+                        sx={{
+                          ...estilosVistaUsuarios.tableRowHover,
+                          cursor: 'pointer',
+                          backgroundColor: personalSeleccionado?.id === persona.id 
+                            ? 'rgba(25, 118, 210, 0.08)' 
+                            : undefined,
+                          '&:hover': {
+                            backgroundColor: persona.tiene_usuario 
+                              ? 'rgba(0, 0, 0, 0.04)' 
+                              : 'rgba(25, 118, 210, 0.04)',
+                          }
+                        }}
                       >
                         <TableCell sx={estilosVistaUsuarios.tableBodyCell}>
                           <Chip 
-                            label={usuario.id} 
+                            label={persona.id} 
                             size="small" 
                             variant="outlined"
                             color="default"
@@ -251,63 +307,162 @@ export default function VistaUsuarios() {
                         </TableCell>
                         <TableCell sx={estilosVistaUsuarios.tableBodyCell}>
                           <Typography variant="body2" fontWeight={600}>
-                            {usuario.nombre_usuario}
+                            {persona.nombres}
                           </Typography>
-                        </TableCell>
-                        <TableCell sx={estilosVistaUsuarios.tableBodyCell}>
-                          <Chip 
-                            label={usuario.rol} 
-                            size="small"
-                            color={obtenerColorRol(usuario.rol)}
-                            variant="outlined"
-                          />
                         </TableCell>
                         <TableCell sx={estilosVistaUsuarios.tableBodyCell}>
                           <Typography variant="body2">
-                            {usuario.fecha_creacion ? 
-                              new Date(usuario.fecha_creacion).toLocaleDateString() : 
-                              'N/A'
-                            }
+                            {persona.apellidos}
                           </Typography>
                         </TableCell>
                         <TableCell sx={estilosVistaUsuarios.tableBodyCell}>
                           <Chip 
-                            label={usuario.activo ? 'Activo' : 'Inactivo'} 
+                            label={persona.cargo} 
                             size="small"
-                            color={usuario.activo ? 'success' : 'default'}
+                            color="default"
                             variant="outlined"
                           />
                         </TableCell>
                         <TableCell sx={estilosVistaUsuarios.tableBodyCell}>
-                          <Box sx={estilosVistaUsuarios.accionesContainer}>
-                            <Tooltip title="Editar usuario">
-                              <IconButton
-                                size="small"
-                                onClick={() => abrirModalEditar(usuario)}
-                                sx={estilosVistaUsuarios.iconButtonEditar}
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Eliminar usuario">
-                              <IconButton
-                                size="small"
-                                onClick={() => handleEliminar(usuario.id, usuario.nombre_usuario)}
-                                sx={estilosVistaUsuarios.iconButtonEliminar}
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
+                          <Chip 
+                            label={persona.tiene_usuario ? 'Con Usuario' : 'Sin Usuario'} 
+                            size="small"
+                            color={persona.tiene_usuario ? 'success' : 'default'}
+                            variant="outlined"
+                          />
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </TableContainer>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          {/* Tabla de Usuarios Registrados */}
+          <Card elevation={2} sx={estilosVistaUsuarios.card}>
+            <CardHeader
+              title={
+                <Box sx={estilosVistaUsuarios.cardHeaderTitle}>
+                  <Box sx={estilosVistaUsuarios.cardHeaderLeft}>
+                    <PeopleIcon color="primary" />
+                    <Typography variant="h6" component="h2" fontWeight={600}>
+                      Usuarios Registrados
+                    </Typography>
+                  </Box>
+                  <Chip 
+                    label={`${usuarios.length} registros`} 
+                    color="primary" 
+                    variant="outlined"
+                    size="small"
+                  />
+                </Box>
+              }
+              sx={estilosVistaUsuarios.cardHeader}
+            />
+            <CardContent sx={{ p: 0 }}>
+              {usuarios.length === 0 ? (
+                <Box sx={estilosVistaUsuarios.emptyState}>
+                  <PeopleIcon sx={estilosVistaUsuarios.emptyIcon} />
+                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                    No hay usuarios registrados
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Seleccione personal de la tabla superior y haga clic en "Crear Usuario"
+                  </Typography>
+                </Box>
+              ) : (
+                <TableContainer sx={estilosVistaUsuarios.tableContainer}>
+                  <Table stickyHeader size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={estilosVistaUsuarios.tableCell}>ID</TableCell>
+                        <TableCell sx={estilosVistaUsuarios.tableCell}>Nombre de Usuario</TableCell>
+                        <TableCell sx={estilosVistaUsuarios.tableCell}>Rol</TableCell>
+                        <TableCell sx={estilosVistaUsuarios.tableCell}>Fecha Creación</TableCell>
+                        <TableCell sx={estilosVistaUsuarios.tableCell}>Estado</TableCell>
+                        <TableCell sx={estilosVistaUsuarios.tableCell}>Acciones</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {usuarios.map((usuario) => (
+                        <TableRow 
+                          key={usuario.usuario_id}
+                          sx={estilosVistaUsuarios.tableRowHover}
+                        >
+                          <TableCell sx={estilosVistaUsuarios.tableBodyCell}>
+                            <Chip 
+                              label={usuario.usuario_id} 
+                              size="small" 
+                              variant="outlined"
+                              color="default"
+                            />
+                          </TableCell>
+                          <TableCell sx={estilosVistaUsuarios.tableBodyCell}>
+                            <Box>
+                              <Typography variant="body2" fontWeight={600}>
+                                {usuario.nombre_usuario}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {usuario.nombres} {usuario.apellidos}
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell sx={estilosVistaUsuarios.tableBodyCell}>
+                            <Chip 
+                              label={usuario.rol} 
+                              size="small"
+                              color={obtenerColorRol(usuario.rol)}
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell sx={estilosVistaUsuarios.tableBodyCell}>
+                            <Typography variant="body2">
+                              {usuario.fecha_creacion ? 
+                                new Date(usuario.fecha_creacion).toLocaleDateString('es-ES') : 
+                                'N/A'
+                              }
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={estilosVistaUsuarios.tableBodyCell}>
+                            <Chip 
+                              label={usuario.estado_usuario ? 'Activo' : 'Inactivo'} 
+                              size="small"
+                              color={usuario.estado_usuario ? 'success' : 'default'}
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell sx={estilosVistaUsuarios.tableBodyCell}>
+                            <Box sx={estilosVistaUsuarios.accionesContainer}>
+                              <Tooltip title="Editar usuario">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => abrirModalEditar(usuario)}
+                                  sx={estilosVistaUsuarios.iconButtonEditar}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Desactivar usuario">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleEliminar(usuario.usuario_id, usuario.nombre_usuario)}
+                                  sx={estilosVistaUsuarios.iconButtonEliminar}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </CardContent>
+          </Card>
+        </>
       )}
 
       {/* Snackbar para notificaciones */}

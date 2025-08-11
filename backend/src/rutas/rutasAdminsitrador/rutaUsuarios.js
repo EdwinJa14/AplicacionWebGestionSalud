@@ -1,6 +1,8 @@
 // rutaUsuarios.js
 import express from 'express';
 import { 
+  getAllPersonal,
+  getAllUsuariosConDetalles,
   getAllUsuarios, 
   getUsuarioById, 
   createUsuario, 
@@ -10,7 +12,17 @@ import {
 
 const router = express.Router();
 
-// Obtener todos los usuarios
+// NUEVAS RUTAS PARA LA VISTA DE USUARIOS
+
+// Obtener todo el personal para selección
+router.get('/personal', getAllPersonal);
+
+// Obtener todos los usuarios con detalles del personal
+router.get('/con-detalles', getAllUsuariosConDetalles);
+
+// RUTAS EXISTENTES
+
+// Obtener todos los usuarios (básico)
 router.get('/', getAllUsuarios);
 
 // Obtener un usuario por ID

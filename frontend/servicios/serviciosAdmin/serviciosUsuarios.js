@@ -2,7 +2,45 @@
 const API_URL = 'http://localhost:5000/api/usuarios';
 
 /**
- * Obtiene todos los usuarios.
+ * Obtiene todo el personal para selección.
+ * @returns {Promise<Array>} Lista de personal
+ */
+export const getAllPersonal = async () => {
+  try {
+    const response = await fetch(`${API_URL}/personal`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al obtener el personal');
+    }
+    const data = await response.json();
+    return data.data || [];
+  } catch (error) {
+    console.error('Error en servicio getAllPersonal:', error);
+    throw error;
+  }
+};
+
+/**
+ * Obtiene todos los usuarios con detalles del personal.
+ * @returns {Promise<Array>} Lista de usuarios con detalles
+ */
+export const getAllUsuariosConDetalles = async () => {
+  try {
+    const response = await fetch(`${API_URL}/con-detalles`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al obtener los usuarios con detalles');
+    }
+    const data = await response.json();
+    return data.data || [];
+  } catch (error) {
+    console.error('Error en servicio getAllUsuariosConDetalles:', error);
+    throw error;
+  }
+};
+
+/**
+ * Obtiene todos los usuarios (función original mantenida).
  * @returns {Promise<Array>} Lista de usuarios
  */
 export const getAll = async () => {
@@ -16,6 +54,26 @@ export const getAll = async () => {
     return data.data || [];
   } catch (error) {
     console.error('Error en servicio getAll usuarios:', error);
+    throw error;
+  }
+};
+
+/**
+ * Obtiene un usuario por ID.
+ * @param {number} id - ID del usuario
+ * @returns {Promise<object>} Datos del usuario
+ */
+export const getById = async (id) => {
+  try {
+    const response = await fetch(`${API_URL}/${id}`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al obtener el usuario');
+    }
+    const data = await response.json();
+    return data.data;
+  } catch (error) {
+    console.error(`Error en servicio getById usuario con id ${id}:`, error);
     throw error;
   }
 };
