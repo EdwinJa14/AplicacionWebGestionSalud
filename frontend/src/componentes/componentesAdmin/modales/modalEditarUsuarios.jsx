@@ -8,7 +8,6 @@ import { useForm, Controller } from 'react-hook-form';
 
 import CloseIcon from '@mui/icons-material/Close';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
 import EditIcon from '@mui/icons-material/Edit';
@@ -39,7 +38,6 @@ export default function ModalEditarUsuario({ visible, usuario, onClose, onGuarda
       nombre_usuario: '',
       contrasena: '',
       rol: '',
-      activo: true,
     }
   });
 
@@ -49,7 +47,6 @@ export default function ModalEditarUsuario({ visible, usuario, onClose, onGuarda
         nombre_usuario: usuario.nombre_usuario || '',
         contrasena: '', // Siempre vacío por seguridad
         rol: usuario.rol || '',
-        activo: usuario.activo !== undefined ? usuario.activo : true,
       });
     }
   }, [usuario, reset]);
@@ -158,37 +155,6 @@ export default function ModalEditarUsuario({ visible, usuario, onClose, onGuarda
                     {roles.map(rol => (
                       <MenuItem key={rol} value={rol}>{rol}</MenuItem>
                     ))}
-                  </TextField>
-                )}
-              />
-            </Grid>
-
-            {/* Estado */}
-            <Grid item xs={12} sm={6}>
-              <Controller
-                name="activo"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Estado"
-                    select
-                    fullWidth
-                    size="medium"
-                    value={field.value ? 'true' : 'false'}
-                    onChange={(e) => field.onChange(e.target.value === 'true')}
-                    sx={{ ...inputSx }}
-                    InputLabelProps={{ shrink: true }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start" sx={iconWrapperSx}>
-                          <BadgeOutlinedIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  >
-                    <MenuItem value="true">Activo</MenuItem>
-                    <MenuItem value="false">Inactivo</MenuItem>
                   </TextField>
                 )}
               />

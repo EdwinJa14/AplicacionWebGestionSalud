@@ -78,7 +78,7 @@ export const update = async (id, pacienteData) => {
 export const remove = async (id) => {
   try {
     const response = await fetch(`${API_URL}/${id}`, {
-      method: 'DELETE',
+      method: 'PATCH',
     });
     if (!response.ok) {
       const errorData = await response.json();

@@ -22,6 +22,6 @@ router.post('/', createPaciente);
 router.put('/:id', updatePaciente);
 
 // Eliminar (inactivar) un paciente
-router.delete('/:id', deletePaciente);
+router.patch('/:id', deletePaciente);
 
 export default router;
