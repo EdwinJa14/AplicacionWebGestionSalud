@@ -7,7 +7,7 @@ import Home from './vistas/Home.jsx';
 import VistaPersonal from './vistas/vistaAdministrador/Personal/vistaPersonal.jsx';
 import VistaPacientes from './vistas/vistaAdministrador/Pacientes/vistaPacientes.jsx';
 import VistaUsuarios from './vistas/vistaAdministrador/Usuarios/vistaUsuarios.jsx';
-import VistaInventario from './vistas/vistaAdministrador/vistaInventario.jsx';
+import VistaInventario from './vistas/vistaAdministrador/Inventario/vistaInventario.jsx';
 
 
 import VistaAgregarPaciente from './vistas/vistaAdministrador/Pacientes/vistaAgregarPaciente.jsx';
