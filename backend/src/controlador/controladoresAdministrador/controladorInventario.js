@@ -3,15 +3,25 @@ import * as InventarioModel from '../../modelo/modelosAdministrador/modeloInvent
 // Obtener todos los productos
 export const getAllProductos = async (req, res) => {
   try {
-    const { incluir_alertas = false } = req.query;
+    const { incluir_alertas = false, metodo = null } = req.query;
     
-    const productos = incluir_alertas === 'true' 
-      ? await InventarioModel.getAllWithAlerts()
-      : await InventarioModel.getAll();
+    let productos;
+    
+    // Si se especifica un método PEPS/UEPS, obtener productos ordenados por ese método
+    if (metodo && ['PEPS', 'UEPS'].includes(metodo.toUpperCase())) {
+      productos = incluir_alertas === 'true' 
+        ? await InventarioModel.getAllWithAlertsByMetodo(metodo.toUpperCase())
+        : await InventarioModel.getAllByMetodo(metodo.toUpperCase());
+    } else {
+      // Comportamiento por defecto
+      productos = incluir_alertas === 'true' 
+        ? await InventarioModel.getAllWithAlerts()
+        : await InventarioModel.getAll();
+    }
 
     res.status(200).json({
       success: true,
-      message: 'Inventario obtenido exitosamente.',
+      message: `Inventario obtenido exitosamente${metodo ? ` usando método ${metodo.toUpperCase()}` : ''}.`,
       data: productos
     });
   } catch (error) {

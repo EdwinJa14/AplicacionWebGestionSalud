@@ -22,6 +22,33 @@ export const getAll = async (incluirAlertas = false) => {
 };
 
 /**
+ * Obtiene todos los productos ordenados por método PEPS o UEPS
+ * @param {string} metodo - Método de ordenamiento (PEPS o UEPS)
+ * @param {boolean} incluirAlertas - Si incluir información de alertas
+ * @returns {Promise<Array>}
+ */
+export const getAllByMetodo = async (metodo = 'PEPS', incluirAlertas = false) => {
+  try {
+    const params = new URLSearchParams();
+    params.append('metodo', metodo);
+    if (incluirAlertas) {
+      params.append('incluir_alertas', 'true');
+    }
+    
+    const response = await fetch(`${API_URL}?${params.toString()}`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al obtener los productos');
+    }
+    const data = await response.json();
+    return data.data || [];
+  } catch (error) {
+    console.error('Error en servicio getAllByMetodo inventario:', error);
+    throw error;
+  }
+};
+
+/**
  * Obtiene un producto por su ID con información de lotes
  * @param {number|string} id - ID del producto
  * @param {string} metodo - Método de ordenamiento (PEPS o UEPS)

@@ -1,6 +1,25 @@
 import pool from '../../../config/db.js';
 
-// Obtener todos los productos del inventario usando la vista
+// Función para verificar qué tablas existen en la base de datos
+export const verificarTablas = async () => {
+  try {
+    const query = `
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_type = 'BASE TABLE'
+      ORDER BY table_name`;
+    
+    const { rows } = await pool.query(query);
+    console.log('Tablas existentes en la base de datos:', rows.map(r => r.table_name));
+    return rows.map(r => r.table_name);
+  } catch (error) {
+    console.error('Error al verificar tablas:', error);
+    throw error;
+  }
+};
+
+// Obtener todos los productos del inventario
 export const getAll = async () => {
   const query = `
     SELECT
@@ -12,8 +31,16 @@ export const getAll = async () => {
       unidad_medida,
       cantidad_actual,
       stock_minimo,
-      estado_stock
-    FROM vista_inventario
+      CASE 
+        WHEN cantidad_actual = 0 THEN 'Agotado'
+        WHEN cantidad_actual <= stock_minimo THEN 'Stock Bajo'
+        ELSE 'Stock Normal'
+      END as estado_stock,
+      estado,
+      fecha_ingreso,
+      fecha_modifica
+    FROM inventario
+    WHERE estado = true
     ORDER BY nombre_item`;
   
   try {
@@ -25,8 +52,29 @@ export const getAll = async () => {
   }
 };
 
-// Obtener productos con alertas de stock
-export const getAllWithAlerts = async () => {
+// Obtener todos los productos ordenados por método PEPS o UEPS (versión simplificada)
+export const getAllByMetodo = async (metodo = 'PEPS') => {
+  // Como no tenemos información de lotes por el momento, ordenaremos por fecha de ingreso
+  // PEPS: Los más antiguos primero (fecha_ingreso ASC)
+  // UEPS: Los más nuevos primero (fecha_ingreso DESC)
+  const ordenQuery = metodo === 'PEPS' 
+    ? `ORDER BY 
+        CASE 
+          WHEN i.cantidad_actual = 0 THEN 1
+          WHEN i.cantidad_actual <= i.stock_minimo THEN 2
+          ELSE 3 
+        END,
+        i.fecha_ingreso ASC,
+        i.nombre_item`
+    : `ORDER BY 
+        CASE 
+          WHEN i.cantidad_actual = 0 THEN 1
+          WHEN i.cantidad_actual <= i.stock_minimo THEN 2
+          ELSE 3 
+        END,
+        i.fecha_ingreso DESC,
+        i.nombre_item`;
+
   const query = `
     SELECT
       i.id,
@@ -37,33 +85,106 @@ export const getAllWithAlerts = async () => {
       i.unidad_medida,
       i.cantidad_actual,
       i.stock_minimo,
-      i.estado_stock,
       CASE 
-        WHEN EXISTS (
-          SELECT 1 FROM alertas_inventario ai 
-          WHERE ai.inventario_id = i.id AND ai.activa = true
-        ) THEN true
-        ELSE false
-      END as tiene_alertas,
-      (
-        SELECT json_agg(
-          json_build_object(
-            'tipo', ai.tipo_alerta,
-            'mensaje', ai.mensaje,
-            'fecha_creacion', ai.fecha_creacion
-          )
-        )
-        FROM alertas_inventario ai
-        WHERE ai.inventario_id = i.id AND ai.activa = true
-      ) as alertas
-    FROM vista_inventario i
-    ORDER BY 
-      CASE WHEN i.estado_stock = 'Agotado' THEN 1
-           WHEN i.estado_stock = 'Stock Bajo' THEN 2
-           ELSE 3 END,
-      i.nombre_item`;
+        WHEN i.cantidad_actual = 0 THEN 'Agotado'
+        WHEN i.cantidad_actual <= i.stock_minimo THEN 'Stock Bajo'
+        ELSE 'Stock Normal'
+      END as estado_stock,
+      i.fecha_ingreso,
+      i.fecha_modifica
+    FROM inventario i
+    WHERE i.estado = true
+    ${ordenQuery}`;
   
   try {
+    const { rows } = await pool.query(query);
+    return rows;
+  } catch (error) {
+    console.error(`Error al obtener inventario por método ${metodo}:`, error);
+    throw error;
+  }
+};
+
+// Obtener productos con alertas (verificando si la tabla alertas_inventario existe)
+export const getAllWithAlerts = async () => {
+  try {
+    // Primero verificar si existe la tabla alertas_inventario
+    const tablaExiste = await verificarTablaAlertasInventario();
+    
+    let query;
+    if (tablaExiste) {
+      query = `
+        SELECT
+          i.id,
+          i.codigo_item,
+          i.nombre_item,
+          i.descripcion,
+          i.categoria,
+          i.unidad_medida,
+          i.cantidad_actual,
+          i.stock_minimo,
+          CASE 
+            WHEN i.cantidad_actual = 0 THEN 'Agotado'
+            WHEN i.cantidad_actual <= i.stock_minimo THEN 'Stock Bajo'
+            ELSE 'Stock Normal'
+          END as estado_stock,
+          CASE 
+            WHEN EXISTS (
+              SELECT 1 FROM alertas_inventario ai 
+              WHERE ai.inventario_id = i.id AND ai.activa = true AND ai.estado = true
+            ) THEN true
+            ELSE false
+          END as tiene_alertas,
+          (
+            SELECT json_agg(
+              json_build_object(
+                'tipo', ai.tipo_alerta,
+                'mensaje', ai.mensaje,
+                'fecha_creacion', ai.fecha_creacion
+              )
+            )
+            FROM alertas_inventario ai
+            WHERE ai.inventario_id = i.id AND ai.activa = true AND ai.estado = true
+          ) as alertas
+        FROM inventario i
+        WHERE i.estado = true
+        ORDER BY 
+          CASE 
+            WHEN i.cantidad_actual = 0 THEN 1
+            WHEN i.cantidad_actual <= i.stock_minimo THEN 2
+            ELSE 3 
+          END,
+          i.nombre_item`;
+    } else {
+      // Si no existe la tabla de alertas, devolver sin alertas
+      query = `
+        SELECT
+          i.id,
+          i.codigo_item,
+          i.nombre_item,
+          i.descripcion,
+          i.categoria,
+          i.unidad_medida,
+          i.cantidad_actual,
+          i.stock_minimo,
+          CASE 
+            WHEN i.cantidad_actual = 0 THEN 'Agotado'
+            WHEN i.cantidad_actual <= i.stock_minimo THEN 'Stock Bajo'
+            ELSE 'Stock Normal'
+          END as estado_stock,
+          false as tiene_alertas,
+          null as alertas
+        FROM inventario i
+        WHERE i.estado = true
+        ORDER BY 
+          CASE 
+            WHEN i.cantidad_actual = 0 THEN 1
+            WHEN i.cantidad_actual <= i.stock_minimo THEN 2
+            ELSE 3 
+          END,
+          i.nombre_item`;
+    }
+    
     const { rows } = await pool.query(query);
     return rows;
   } catch (error) {
@@ -72,7 +193,117 @@ export const getAllWithAlerts = async () => {
   }
 };
 
-// Obtener producto por ID con información de lotes
+// Obtener productos con alertas ordenados por método PEPS o UEPS
+export const getAllWithAlertsByMetodo = async (metodo = 'PEPS') => {
+  try {
+    const tablaExiste = await verificarTablaAlertasInventario();
+    
+    const ordenQuery = metodo === 'PEPS' 
+      ? `ORDER BY 
+          CASE 
+            WHEN i.cantidad_actual = 0 THEN 1
+            WHEN i.cantidad_actual <= i.stock_minimo THEN 2
+            ELSE 3 
+          END,
+          i.fecha_ingreso ASC,
+          i.nombre_item`
+      : `ORDER BY 
+          CASE 
+            WHEN i.cantidad_actual = 0 THEN 1
+            WHEN i.cantidad_actual <= i.stock_minimo THEN 2
+            ELSE 3 
+          END,
+          i.fecha_ingreso DESC,
+          i.nombre_item`;
+
+    let query;
+    if (tablaExiste) {
+      query = `
+        SELECT
+          i.id,
+          i.codigo_item,
+          i.nombre_item,
+          i.descripcion,
+          i.categoria,
+          i.unidad_medida,
+          i.cantidad_actual,
+          i.stock_minimo,
+          CASE 
+            WHEN i.cantidad_actual = 0 THEN 'Agotado'
+            WHEN i.cantidad_actual <= i.stock_minimo THEN 'Stock Bajo'
+            ELSE 'Stock Normal'
+          END as estado_stock,
+          CASE 
+            WHEN EXISTS (
+              SELECT 1 FROM alertas_inventario ai 
+              WHERE ai.inventario_id = i.id AND ai.activa = true AND ai.estado = true
+            ) THEN true
+            ELSE false
+          END as tiene_alertas,
+          (
+            SELECT json_agg(
+              json_build_object(
+                'tipo', ai.tipo_alerta,
+                'mensaje', ai.mensaje,
+                'fecha_creacion', ai.fecha_creacion
+              )
+            )
+            FROM alertas_inventario ai
+            WHERE ai.inventario_id = i.id AND ai.activa = true AND ai.estado = true
+          ) as alertas
+        FROM inventario i
+        WHERE i.estado = true
+        ${ordenQuery}`;
+    } else {
+      query = `
+        SELECT
+          i.id,
+          i.codigo_item,
+          i.nombre_item,
+          i.descripcion,
+          i.categoria,
+          i.unidad_medida,
+          i.cantidad_actual,
+          i.stock_minimo,
+          CASE 
+            WHEN i.cantidad_actual = 0 THEN 'Agotado'
+            WHEN i.cantidad_actual <= i.stock_minimo THEN 'Stock Bajo'
+            ELSE 'Stock Normal'
+          END as estado_stock,
+          false as tiene_alertas,
+          null as alertas
+        FROM inventario i
+        WHERE i.estado = true
+        ${ordenQuery}`;
+    }
+    
+    const { rows } = await pool.query(query);
+    return rows;
+  } catch (error) {
+    console.error(`Error al obtener inventario con alertas por método ${metodo}:`, error);
+    throw error;
+  }
+};
+
+// Función auxiliar para verificar si existe la tabla alertas_inventario
+const verificarTablaAlertasInventario = async () => {
+  try {
+    const query = `
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'alertas_inventario'
+      )`;
+    
+    const { rows } = await pool.query(query);
+    return rows[0].exists;
+  } catch (error) {
+    console.error('Error al verificar tabla alertas_inventario:', error);
+    return false;
+  }
+};
+
+// Obtener producto por ID (versión simplificada sin lotes)
 export const getById = async (id) => {
   const query = `
     SELECT
@@ -88,7 +319,12 @@ export const getById = async (id) => {
       usuario_ingreso,
       fecha_ingreso,
       usuario_modifica,
-      fecha_modifica
+      fecha_modifica,
+      CASE 
+        WHEN cantidad_actual = 0 THEN 'Agotado'
+        WHEN cantidad_actual <= stock_minimo THEN 'Stock Bajo'
+        ELSE 'Stock Normal'
+      END as estado_stock
     FROM inventario
     WHERE id = $1 AND estado = true`;
   
@@ -98,12 +334,8 @@ export const getById = async (id) => {
     
     const producto = rows[0];
     
-    // Obtener información de lotes usando la función
-    const lotesQuery = `SELECT * FROM fn_stock_lote($1) ORDER BY fecha_vencimiento ASC`;
-    const { rows: lotes } = await pool.query(lotesQuery, [id]);
-    
-    producto.lotes = lotes;
-    producto.estado_stock = await getEstadoStock(producto.cantidad_actual, producto.stock_minimo);
+    // Por ahora, devolvemos un array vacío de lotes hasta que se implementen las tablas
+    producto.lotes = [];
     
     return producto;
   } catch (error) {
@@ -112,17 +344,12 @@ export const getById = async (id) => {
   }
 };
 
-// Obtener lotes por método PEPS o UEPS
+// Obtener lotes por método PEPS o UEPS (versión simplificada)
 export const getLotesByMetodo = async (inventario_id, metodo = 'PEPS') => {
-  const ordenQuery = metodo === 'PEPS' 
-    ? 'ORDER BY fecha_vencimiento ASC' 
-    : 'ORDER BY fecha_vencimiento DESC';
-    
-  const query = `SELECT * FROM fn_stock_lote($1) ${ordenQuery}`;
-  
   try {
-    const { rows } = await pool.query(query, [inventario_id]);
-    return rows;
+    // Por ahora retornamos array vacío hasta que se implementen las tablas de lotes
+    console.log(`Solicitud de lotes para inventario ${inventario_id} con método ${metodo}`);
+    return [];
   } catch (error) {
     console.error(`Error al obtener lotes por método ${metodo}:`, error);
     throw error;
@@ -249,8 +476,15 @@ export const remove = async (id) => {
 // Obtener productos por categoría
 export const getByCategoria = async (categoria) => {
   const query = `
-    SELECT * FROM vista_inventario 
-    WHERE categoria = $1 
+    SELECT 
+      *,
+      CASE 
+        WHEN cantidad_actual = 0 THEN 'Agotado'
+        WHEN cantidad_actual <= stock_minimo THEN 'Stock Bajo'
+        ELSE 'Stock Normal'
+      END as estado_stock
+    FROM inventario 
+    WHERE categoria = $1 AND estado = true
     ORDER BY nombre_item`;
   
   try {
@@ -265,10 +499,18 @@ export const getByCategoria = async (categoria) => {
 // Obtener productos con stock bajo
 export const getStockBajo = async () => {
   const query = `
-    SELECT * FROM vista_inventario 
-    WHERE estado_stock IN ('Stock Bajo', 'Agotado')
+    SELECT 
+      *,
+      CASE 
+        WHEN cantidad_actual = 0 THEN 'Agotado'
+        WHEN cantidad_actual <= stock_minimo THEN 'Stock Bajo'
+        ELSE 'Stock Normal'
+      END as estado_stock
+    FROM inventario 
+    WHERE (cantidad_actual = 0 OR cantidad_actual <= stock_minimo) 
+      AND estado = true
     ORDER BY 
-      CASE WHEN estado_stock = 'Agotado' THEN 1 ELSE 2 END,
+      CASE WHEN cantidad_actual = 0 THEN 1 ELSE 2 END,
       nombre_item`;
   
   try {
@@ -280,31 +522,20 @@ export const getStockBajo = async () => {
   }
 };
 
-// Función auxiliar para obtener estado del stock
-const getEstadoStock = async (cantidad_actual, stock_minimo) => {
-  const query = `SELECT fn_estado_stock($1, $2) as estado`;
-  try {
-    const { rows } = await pool.query(query, [cantidad_actual, stock_minimo]);
-    return rows[0].estado;
-  } catch (error) {
-    console.error('Error al obtener estado del stock:', error);
-    return 'Error';
-  }
-};
-
 // Obtener estadísticas del inventario
 export const getEstadisticas = async () => {
   const query = `
     SELECT 
       COUNT(*) as total_productos,
-      COUNT(CASE WHEN estado_stock = 'Stock Normal' THEN 1 END) as stock_normal,
-      COUNT(CASE WHEN estado_stock = 'Stock Bajo' THEN 1 END) as stock_bajo,
-      COUNT(CASE WHEN estado_stock = 'Agotado' THEN 1 END) as agotado,
+      COUNT(CASE WHEN cantidad_actual > stock_minimo THEN 1 END) as stock_normal,
+      COUNT(CASE WHEN cantidad_actual <= stock_minimo AND cantidad_actual > 0 THEN 1 END) as stock_bajo,
+      COUNT(CASE WHEN cantidad_actual = 0 THEN 1 END) as agotado,
       COUNT(CASE WHEN categoria = 'Medicamento' THEN 1 END) as medicamentos,
       COUNT(CASE WHEN categoria = 'Material_Medico' THEN 1 END) as material_medico,
       COUNT(CASE WHEN categoria = 'Insumo' THEN 1 END) as insumos,
       COUNT(CASE WHEN categoria = 'Equipo' THEN 1 END) as equipos
-    FROM vista_inventario`;
+    FROM inventario
+    WHERE estado = true`;
   
   try {
     const { rows } = await pool.query(query);
