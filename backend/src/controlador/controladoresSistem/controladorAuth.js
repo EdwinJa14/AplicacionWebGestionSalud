@@ -1,4 +1,3 @@
-// backend/src/controlador/controladoresSistem/controladorAuth.js
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
@@ -37,7 +36,6 @@ export const login = async (req, res) => {
       });
     }
 
-    // Verifica la contraseña
     const esPasswordCorrecto = await bcrypt.compare(password, usuario.password_hash);
     if (!esPasswordCorrecto) {
       console.log(`Contraseña incorrecta para usuario: ${nombre_usuario}`);
@@ -53,7 +51,6 @@ export const login = async (req, res) => {
       console.error('Error al actualizar último login:', error);
     }
 
-    // Payload JWT
     const payload = {
       usuario: {
         id: usuario.id,
@@ -140,7 +137,6 @@ export const verifyToken = async (req, res) => {
 };
 
 export const logout = async (req, res) => {
-  // Actualmente no hay blacklist, solo respondemos ok.
   res.json({
     success: true,
     message: 'Sesión cerrada exitosamente',

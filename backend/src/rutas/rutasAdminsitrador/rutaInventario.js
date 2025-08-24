@@ -1,4 +1,6 @@
 import express from 'express';
+import { body } from 'express-validator';
+import { auth, requireAdmin } from '../../middlewares/auth.js';
 import {
   getAllProductos,
   getProductoById,
@@ -7,46 +9,33 @@ import {
   deleteProducto,
   getProductosPorCategoria,
   getStockBajo,
-  getLotesByMetodo,
   getEstadisticas
 } from '../../controlador/controladoresAdministrador/controladorInventario.js';
 
 const router = express.Router();
 
-// Obtener todos los productos (con opción de incluir alertas)
-// GET /api/inventario?incluir_alertas=true
+// Middleware de autenticación y autorización
+router.use(auth, requireAdmin);
+
+// Reglas de validación
+const productoValidationRules = [
+    body('codigo_item').trim().notEmpty().withMessage('El código es obligatorio').escape(),
+    body('nombre_item').trim().notEmpty().withMessage('El nombre es obligatorio').escape(),
+    body('descripcion').optional({ checkFalsy: true }).trim().escape(),
+    body('categoria').isIn(['Medicamento', 'Material_Medico', 'Insumo', 'Equipo']).withMessage('Categoría no válida'),
+    body('unidad_medida').trim().notEmpty().withMessage('La unidad de medida es obligatoria').escape(),
+    body('cantidad_actual').optional().isInt({ min: 0 }).withMessage('La cantidad debe ser un número positivo'),
+    body('stock_minimo').optional().isInt({ min: 0 }).withMessage('El stock mínimo debe ser un número positivo'),
+];
+
+// Rutas
 router.get('/', getAllProductos);
-
-// Obtener estadísticas del inventario
-// GET /api/inventario/estadisticas
 router.get('/estadisticas', getEstadisticas);
-
-// Obtener productos con stock bajo
-// GET /api/inventario/stock-bajo
 router.get('/stock-bajo', getStockBajo);
-
-// Obtener productos por categoría
-// GET /api/inventario/categoria/Medicamento
 router.get('/categoria/:categoria', getProductosPorCategoria);
-
-// Obtener producto por ID (con información de lotes)
-// GET /api/inventario/1?metodo=PEPS
 router.get('/:id', getProductoById);
-
-// Obtener lotes por método PEPS/UEPS
-// GET /api/inventario/1/lotes?metodo=PEPS
-router.get('/:id/lotes', getLotesByMetodo);
-
-// Crear nuevo producto
-// POST /api/inventario
-router.post('/', createProducto);
-
-// Actualizar producto
-// PUT /api/inventario/1
-router.put('/:id', updateProducto);
-
-// Eliminar (inactivar) producto
-// PATCH /api/inventario/1
+router.post('/', productoValidationRules, createProducto);
+router.put('/:id', productoValidationRules, updateProducto);
 router.patch('/:id', deleteProducto);
 
 export default router;

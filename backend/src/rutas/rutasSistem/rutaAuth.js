@@ -1,4 +1,3 @@
-// backend/src/rutas/rutaAuth.js
 import express from 'express';
 import { body } from 'express-validator';
 import { login, verifyToken, logout } from '../../controlador/controladoresSistem/controladorAuth.js';
