@@ -1,22 +1,52 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash, FaUser, FaLock } from 'react-icons/fa';
-import { styles } from './estilosComponentes/loginEstilos'; 
+import { styles } from './estilosComponentes/loginEstilos';
 import logo from '../assets/Logo.png';
+import { useAuth } from '../context/authContext';
+import { login as loginService } from '../../servicios/servicioSistem/serviciosAuth.js';
 
 export default function Login() {
   const [nombre, setNombre] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [verPassword, setVerPassword] = useState(false);
   const navigate = useNavigate();
+  const { setUser, setRole } = useAuth();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    console.log('Usuario:', nombre, 'Contraseña:', contrasena);
-  };
 
-  const irAlHome = () => {
-    navigate('/home');
+    try {
+      const response = await loginService({
+        nombre_usuario: nombre,
+        password: contrasena,
+      });
+
+      if (response.success) {
+        const usuario = response.usuario;
+        setUser(usuario);
+        setRole(usuario.rol);
+
+        // Redirigir según el rol
+        switch (usuario.rol) {
+          case 'administrativo':
+            navigate('/home');
+            break;
+          case 'medico':
+          case 'enfermero':
+            navigate('/perfil');
+            break;
+          default:
+            alert('Rol no reconocido');
+            break;
+        }
+      } else {
+        alert('Inicio de sesión fallido');
+      }
+    } catch (error) {
+      console.error('Error de login:', error.message);
+      alert(`Error: ${error.message}`);
+    }
   };
 
   return (
@@ -24,7 +54,7 @@ export default function Login() {
       <div style={styles.formPanel}>
         <h2 style={styles.formTitle}>Bienvenido de Nuevo</h2>
         <p style={styles.formSubtitle}>Ingresa tus credenciales para continuar</p>
-        
+
         <form onSubmit={handleLogin} style={styles.form}>
           <div style={styles.inputContainer}>
             <FaUser size={20} color="#A9A9A9" style={styles.icon} />
@@ -57,15 +87,6 @@ export default function Login() {
 
           <button type="submit" style={styles.submitButton}>
             Ingresar
-          </button>
-          
-          {/* BOTÓN TEMPORAL */}
-          <button
-            type="button"
-            onClick={irAlHome}
-            style={styles.secondaryButton}
-          >
-            Ir al Home (Temporal)
           </button>
         </form>
       </div>

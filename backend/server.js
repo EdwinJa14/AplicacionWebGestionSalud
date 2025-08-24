@@ -8,7 +8,7 @@ import personalRoutes from './src/rutas/rutasAdminsitrador/rutaPersonal.js';
 import pacienteRoutes from './src/rutas/rutasAdminsitrador/rutaPaciente.js'; 
 import usuarioRoutes from './src/rutas/rutasAdminsitrador/rutaUsuarios.js';  
 import inventarioRoutes from './src/rutas/rutasAdminsitrador/rutaInventario.js';
-
+import authRoutes from './src/rutas/rutasSistem/rutaAuth.js'
 dotenv.config();
 
 const app = express();
@@ -70,6 +70,7 @@ app.use('/api/personal', personalRoutes);
 app.use('/api/pacientes', pacienteRoutes);
 app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/inventario', inventarioRoutes);
+app.use('/api/auth', authRoutes);
 
 // Manejo de rutas no encontradas
 app.use('*', (req, res) => {

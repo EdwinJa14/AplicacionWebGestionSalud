@@ -28,7 +28,11 @@ import {
   saveButtonSx,
 } from '../../estilosComponentes/estilosModales/estilosModalEditarUsuario.js';
 
-const roles = ['Administrador', 'Doctor', 'Enfermero', 'Recepcionista'];
+const roles = [
+  { value: 'administrativo', label: 'Administrativo' },
+  { value: 'medico', label: 'Médico' },
+  { value: 'enfermero', label: 'Enfermero' },
+];
 
 export default function ModalEditarUsuario({ visible, usuario, onClose, onGuardar }) {
   const [mostrarContrasena, setMostrarContrasena] = useState(false);
@@ -153,8 +157,9 @@ export default function ModalEditarUsuario({ visible, usuario, onClose, onGuarda
                     }}
                   >
                     {roles.map(rol => (
-                      <MenuItem key={rol} value={rol}>{rol}</MenuItem>
-                    ))}
+  <MenuItem key={rol.value} value={rol.value}>{rol.label}</MenuItem>
+))}
+
                   </TextField>
                 )}
               />

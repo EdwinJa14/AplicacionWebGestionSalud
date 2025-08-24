@@ -26,7 +26,7 @@ import StraightenIcon from '@mui/icons-material/Straighten';
 
 // --- SERVICIOS Y ESTILOS ---
 import * as inventarioService from '../../../../servicios/serviciosAdmin/servicioInventario.js';
-import estilosVistaAgregarInventario from '../../estilosVistas/estilosInventario/estilosAgregarInventario';
+import estilosVistaAgregarInventario from '../../estilosVistas/estiloVistaAdministrador/estilosInventario/estilosAgregarInventario.js';
 
 // --- DATOS DE CONFIGURACIÓN ---
 const categorias = [

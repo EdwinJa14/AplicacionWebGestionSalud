@@ -1,33 +1,17 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-
-import Layout from './componentes/Layaout.jsx';
+import { useAuth } from '../src/context/authContext.jsx';
 import PanelPrincipal from './vistas/panelPrincipal.jsx';
-import Home from './vistas/Home.jsx';
-import VistaPersonal from './vistas/vistaAdministrador/Personal/vistaPersonal.jsx';
-import VistaPacientes from './vistas/vistaAdministrador/Pacientes/vistaPacientes.jsx';
-import VistaUsuarios from './vistas/vistaAdministrador/Usuarios/vistaUsuarios.jsx';
-import VistaInventario from './vistas/vistaAdministrador/Inventario/vistaInventario.jsx';
-
-
-import VistaAgregarPaciente from './vistas/vistaAdministrador/Pacientes/vistaAgregarPaciente.jsx';
+import AdminRoutes from '../src/vistas/AdimRoutes.jsx';
+import UserRoutes from '../src/vistas/UserRoutes.jsx';
 
 function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<PanelPrincipal />} />
+  const { role } = useAuth();
 
-      <Route element={<Layout />}>
-        <Route path="/home" element={<Home />} />
-        <Route path="/personal" element={<VistaPersonal />} />
-        <Route path="/pacientes" element={<VistaPacientes />} />
-        <Route path="/usuarios" element={<VistaUsuarios />} />
-        <Route path="/inventario" element={<VistaInventario />} />
+  if (!role) {
+    return <PanelPrincipal />;
+  }
 
-        <Route path="/pacientes/agregar" element={<VistaAgregarPaciente />} />
-      </Route>
-    </Routes>
-  );
+  return role === 'administrativo' ? <AdminRoutes /> : <UserRoutes />;
 }
 
 export default App;

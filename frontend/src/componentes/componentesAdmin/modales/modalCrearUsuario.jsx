@@ -30,11 +30,11 @@ import {
 } from '../../estilosComponentes/estilosModales/estilosModalEditarUsuario.js';
 
 const roles = [
-  { value: 'admin', label: 'Administrador' },
+  { value: 'administrativo', label: 'Administrativo' },
   { value: 'medico', label: 'Médico' },
   { value: 'enfermero', label: 'Enfermero' },
-  { value: 'administrativo', label: 'Administrativo' }
 ];
+
 
 export default function ModalCrearUsuario({ visible, personalSeleccionado, onClose, onCrear }) {
   const [mostrarContrasena, setMostrarContrasena] = useState(false);

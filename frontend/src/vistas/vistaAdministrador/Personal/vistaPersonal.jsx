@@ -25,7 +25,7 @@ import {
 import GroupIcon from '@mui/icons-material/Group';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import estilosPersonal from '../../estilosVistas/estilosPesonal/estilosPersonal.js'; 
+import estilosPersonal from '../../estilosVistas/estiloVistaAdministrador/estilosPesonal/estilosPersonal.js'; 
 
 import * as personalService from '../../../../servicios/serviciosAdmin/servicioPersonal.js';
 import ModalEditarPersonal from '../../../componentes/componentesAdmin/modales/modalEditarPersonal.jsx';

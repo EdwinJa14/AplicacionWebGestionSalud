@@ -24,7 +24,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import ClearIcon from '@mui/icons-material/Clear';
 
 import * as personalService from '../../../../servicios/serviciosAdmin/servicioPersonal.js';
-import estilosVistaAgregarPersonal from '../../estilosVistas/estilosPesonal/estilosAgregarPersonal';
+import estilosVistaAgregarPersonal from '../../estilosVistas/estiloVistaAdministrador/estilosPesonal/estilosAgregarPersonal.js';
 
 // Datos de configuración
 const cargos = ['Médico General', 'Enfermera Jefe', 'Administradora', 'Enfermero', 'Auxiliar', 'Otro'];

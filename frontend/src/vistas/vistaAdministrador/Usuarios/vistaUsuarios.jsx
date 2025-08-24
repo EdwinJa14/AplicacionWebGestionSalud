@@ -32,7 +32,7 @@ import BadgeIcon from '@mui/icons-material/Badge';
 import * as usuarioService from '../../../../servicios/serviciosAdmin/serviciosUsuarios.js';
 import ModalEditarUsuario from '../../../componentes/componentesAdmin/modales/modalEditarUsuarios.jsx';
 import ModalCrearUsuario from '../../../componentes/componentesAdmin/modales/modalCrearUsuario.jsx';
-import { estilosVistaUsuarios } from '../../estilosVistas/estilosUsuario/estiloUsuario.js';
+import { estilosVistaUsuarios } from '../../estilosVistas/estiloVistaAdministrador/estilosUsuario/estiloUsuario.js';
 
 // Función para obtener color del chip según el rol
 const obtenerColorRol = (rol) => {
