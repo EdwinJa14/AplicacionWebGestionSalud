@@ -2,13 +2,14 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
 import * as AuthModel from '../../modelo/modelosSistem/modeloAuth.js';
+import logger from '../../../config/logger.js';
 
 export const login = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        success: false, 
+      return res.status(400).json({
+        success: false,
         errors: errors.array(),
         message: 'Datos de entrada inválidos'
       });
@@ -16,12 +17,12 @@ export const login = async (req, res) => {
 
     const { nombre_usuario, password } = req.body;
 
-    console.log(`Intento de login para usuario: ${nombre_usuario}`);
+    logger.info(`Intento de login para usuario: ${nombre_usuario}`);
 
     const usuario = await AuthModel.findUserByUsername(nombre_usuario);
 
     if (!usuario) {
-      console.log(`Usuario no encontrado: ${nombre_usuario}`);
+      logger.warn(`Usuario no encontrado: ${nombre_usuario}`);
       return res.status(401).json({
         success: false,
         message: 'Credenciales inválidas.',
@@ -29,7 +30,7 @@ export const login = async (req, res) => {
     }
 
     if (!usuario.estado) {
-      console.log(`Usuario inactivo: ${nombre_usuario}`);
+      logger.warn(`Intento de login de usuario inactivo: ${nombre_usuario}`);
       return res.status(401).json({
         success: false,
         message: 'Usuario inactivo. Contacta al administrador.',
@@ -38,7 +39,7 @@ export const login = async (req, res) => {
 
     const esPasswordCorrecto = await bcrypt.compare(password, usuario.password_hash);
     if (!esPasswordCorrecto) {
-      console.log(`Contraseña incorrecta para usuario: ${nombre_usuario}`);
+      logger.warn(`Contraseña incorrecta para usuario: ${nombre_usuario}`);
       return res.status(401).json({
         success: false,
         message: 'Credenciales inválidas.',
@@ -48,7 +49,7 @@ export const login = async (req, res) => {
     try {
       await AuthModel.updateLastLogin(usuario.id);
     } catch (error) {
-      console.error('Error al actualizar último login:', error);
+      logger.error(`Error al actualizar último login para usuario ${usuario.id}: ${error.message}`);
     }
 
     const payload = {
@@ -61,20 +62,20 @@ export const login = async (req, res) => {
     };
 
     if (!process.env.JWT_SECRET) {
-      console.error('JWT_SECRET no está configurado');
+      logger.error('JWT_SECRET no está configurado. No se puede generar token.');
       return res.status(500).json({
         success: false,
         message: 'Error de configuración del servidor.',
       });
     }
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { 
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: '8h',
       issuer: 'puesto-salud-chinaca',
       audience: 'puesto-salud-usuarios'
     });
 
-    console.log(`Login exitoso para usuario: ${nombre_usuario} con rol: ${usuario.rol}`);
+    logger.info(`Login exitoso para usuario: ${nombre_usuario} con rol: ${usuario.rol}`);
 
     res.status(200).json({
       success: true,
@@ -89,7 +90,7 @@ export const login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error en el inicio de sesión:', error);
+    logger.error(`Error en el controlador de login: ${error.message}`);
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor. Intenta nuevamente.',
@@ -112,6 +113,7 @@ export const verifyToken = async (req, res) => {
     const usuario = await AuthModel.findUserById(decoded.usuario.id);
 
     if (!usuario || !usuario.estado) {
+      logger.warn(`Verificación de token fallida para usuario ID ${decoded.usuario.id} (no encontrado o inactivo)`);
       return res.status(401).json({
         success: false,
         message: 'Token inválido o usuario inactivo',
@@ -128,7 +130,7 @@ export const verifyToken = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error al verificar token:', error);
+    logger.error(`Error al verificar token: ${error.message}`);
     res.status(401).json({
       success: false,
       message: 'Token inválido',
@@ -137,6 +139,7 @@ export const verifyToken = async (req, res) => {
 };
 
 export const logout = async (req, res) => {
+  logger.info(`Usuario ID ${req.usuario.id} cerró sesión.`);
   res.json({
     success: true,
     message: 'Sesión cerrada exitosamente',

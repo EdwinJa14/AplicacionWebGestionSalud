@@ -1,7 +1,7 @@
 import { validationResult } from 'express-validator';
 import * as PacienteModel from '../../modelo/modelosAdministrador/modeloPacientes.js';
+import logger from '../../../config/logger.js';
 
-// Obtener todos los pacientes
 export const getAllPacientes = async (req, res) => {
   try {
     const pacientes = await PacienteModel.getAll();
@@ -15,7 +15,7 @@ export const getAllPacientes = async (req, res) => {
       data: pacientesFiltrados
     });
   } catch (error) {
-    console.error('Error al obtener pacientes:', error);
+    logger.error(`Error al obtener pacientes: ${error.message}`);
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor.'
@@ -23,7 +23,6 @@ export const getAllPacientes = async (req, res) => {
   }
 };
 
-// Obtener un paciente por su ID
 export const getPacienteById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -41,7 +40,7 @@ export const getPacienteById = async (req, res) => {
       data: resto
     });
   } catch (error) {
-    console.error('Error al obtener paciente por ID:', error);
+    logger.error(`Error al obtener paciente por ID (${req.params.id}): ${error.message}`);
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor.'
@@ -49,7 +48,6 @@ export const getPacienteById = async (req, res) => {
   }
 };
 
-// Crear un nuevo paciente
 export const createPaciente = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -57,7 +55,7 @@ export const createPaciente = async (req, res) => {
   }
 
   try {
-    const { nombres, apellidos, dpi, fecha_nacimiento, genero, direccion, telefono, tipo_paciente } = req.body;
+    const { dpi } = req.body;
 
     const dpiExiste = await PacienteModel.existsByDpi(dpi);
     if (dpiExiste) {
@@ -67,32 +65,24 @@ export const createPaciente = async (req, res) => {
       });
     }
 
-    const nuevoPaciente = await PacienteModel.create({
-      nombres, apellidos, dpi, fecha_nacimiento, genero, direccion, telefono, tipo_paciente
-    });
-
+    const nuevoPaciente = await PacienteModel.create(req.body);
     const { estado, ...resto } = nuevoPaciente;
+
+    logger.info(`Paciente creado exitosamente con ID: ${resto.id}`);
     res.status(201).json({
       success: true,
       message: 'Paciente creado exitosamente.',
       data: resto
     });
   } catch (error) {
-    console.error('Error al crear paciente:', error);
-    if (error.code === '23505' && error.constraint === 'pacientes_dpi_key') {
-      return res.status(400).json({
-        success: false,
-        message: 'Ya existe un paciente registrado con este DPI.'
-      });
+    logger.error(`Error al crear paciente: ${error.message}`, { body: req.body });
+    if (error.code === '23505') {
+      return res.status(400).json({ success: false, message: 'Ya existe un paciente registrado con este DPI.' });
     }
-    res.status(500).json({
-      success: false,
-      message: 'Error interno del servidor.'
-    });
+    res.status(500).json({ success: false, message: 'Error interno del servidor.' });
   }
 };
 
-// Actualizar un paciente existente
 export const updatePaciente = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -101,7 +91,7 @@ export const updatePaciente = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { nombres, apellidos, dpi, fecha_nacimiento, genero, direccion, telefono, tipo_paciente } = req.body;
+    const { dpi } = req.body;
 
     if (dpi) {
       const dpiExiste = await PacienteModel.existsByDpi(dpi, id);
@@ -113,62 +103,44 @@ export const updatePaciente = async (req, res) => {
       }
     }
 
-    const pacienteActualizado = await PacienteModel.update(id, {
-      nombres, apellidos, dpi, fecha_nacimiento, genero, direccion, telefono, tipo_paciente
-    });
-
+    const pacienteActualizado = await PacienteModel.update(id, req.body);
     if (!pacienteActualizado) {
-      return res.status(404).json({
-        success: false,
-        message: 'Paciente no encontrado para actualizar.'
-      });
+      return res.status(404).json({ success: false, message: 'Paciente no encontrado para actualizar.' });
     }
 
     const { estado, ...resto } = pacienteActualizado;
+    logger.info(`Paciente ID ${id} actualizado exitosamente.`);
     res.status(200).json({
       success: true,
       message: 'Paciente actualizado exitosamente.',
       data: resto
     });
   } catch (error) {
-    console.error('Error al actualizar paciente:', error);
-    if (error.code === '23505' && error.constraint === 'pacientes_dpi_key') {
-      return res.status(400).json({
-        success: false,
-        message: 'Ya existe otro paciente registrado con este DPI.'
-      });
+    logger.error(`Error al actualizar paciente ID ${req.params.id}: ${error.message}`, { body: req.body });
+    if (error.code === '23505') {
+      return res.status(400).json({ success: false, message: 'Ya existe otro paciente registrado con este DPI.' });
     }
-    res.status(500).json({
-      success: false,
-      message: 'Error interno del servidor.'
-    });
+    res.status(500).json({ success: false, message: 'Error interno del servidor.' });
   }
 };
 
-// Eliminar un paciente (cambio de estado)
 export const deletePaciente = async (req, res) => {
   try {
     const { id } = req.params;
     const pacienteEliminado = await PacienteModel.remove(id);
-
     if (!pacienteEliminado) {
-      return res.status(404).json({
-        success: false,
-        message: 'Paciente no encontrado para eliminar.'
-      });
+      return res.status(404).json({ success: false, message: 'Paciente no encontrado para eliminar.' });
     }
 
     const { estado, ...resto } = pacienteEliminado;
+    logger.info(`Paciente ID ${id} marcado como inactivo.`);
     res.status(200).json({
       success: true,
       message: 'Paciente marcado como inactivo exitosamente.',
       data: resto
     });
   } catch (error) {
-    console.error('Error al eliminar paciente:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error interno del servidor.'
-    });
+    logger.error(`Error al eliminar paciente ID ${req.params.id}: ${error.message}`);
+    res.status(500).json({ success: false, message: 'Error interno del servidor.' });
   }
 };

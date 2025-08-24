@@ -1,11 +1,6 @@
 import { validationResult } from 'express-validator';
 import * as PersonalModel from '../../modelo/modelosAdministrador/modeloPersonal.js';
-
-// Función para validar formato DPI guatemalteco
-const validarDPI = (dpi) => {
-  const dpiRegex = /^\d{13}$/;
-  return dpiRegex.test(dpi);
-};
+import logger from '../../../config/logger.js';
 
 // Obtener todo el personal
 export const getAllPersonal = async (req, res) => {
@@ -21,7 +16,7 @@ export const getAllPersonal = async (req, res) => {
       data: personalFiltrado
     });
   } catch (error) {
-    console.error('Error al obtener personal:', error);
+    logger.error(`Error al obtener personal: ${error.message}`);
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor.'
@@ -47,7 +42,7 @@ export const getPersonalById = async (req, res) => {
       data: resto
     });
   } catch (error) {
-    console.error('Error al obtener personal por ID:', error);
+    logger.error(`Error al obtener personal por ID (${req.params.id}): ${error.message}`);
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor.'
@@ -78,13 +73,14 @@ export const createPersonal = async (req, res) => {
     });
 
     const { estado, ...resto } = nuevoPersonal;
+    logger.info(`Personal creado exitosamente con ID: ${resto.id}`);
     res.status(201).json({
       success: true,
       message: 'Personal creado exitosamente.',
       data: resto
     });
   } catch (error) {
-    console.error('Error al crear personal:', error);
+    logger.error(`Error al crear personal: ${error.message}`, { body: req.body });
     if (error.code === '23505' && error.constraint === 'personal_dpi_key') {
       return res.status(400).json({
         success: false,
@@ -131,13 +127,14 @@ export const updatePersonal = async (req, res) => {
     }
 
     const { estado, ...resto } = personalActualizado;
+    logger.info(`Personal ID ${id} actualizado exitosamente.`);
     res.status(200).json({
       success: true,
       message: 'Personal actualizado exitosamente.',
       data: resto
     });
   } catch (error) {
-    console.error('Error al actualizar personal:', error);
+    logger.error(`Error al actualizar personal ID ${req.params.id}: ${error.message}`, { body: req.body });
     if (error.code === '23505' && error.constraint === 'personal_dpi_key') {
       return res.status(400).json({
         success: false,
@@ -165,13 +162,14 @@ export const deletePersonal = async (req, res) => {
     }
 
     const { estado, ...resto } = personalEliminado;
+    logger.info(`Personal ID ${id} marcado como inactivo.`);
     res.status(200).json({
       success: true,
       message: 'Personal marcado como inactivo exitosamente.',
       data: resto
     });
   } catch (error) {
-    console.error('Error al eliminar personal:', error);
+    logger.error(`Error al eliminar personal ID ${req.params.id}: ${error.message}`);
     res.status(500).json({
       success: false,
       message: error.message || 'Error interno del servidor.'

@@ -1,10 +1,10 @@
 import { validationResult } from 'express-validator';
 import * as InventarioModel from '../../modelo/modelosAdministrador/modeloInventario.js';
+import logger from '../../../config/logger.js';
 
-// Obtener todos los productos
 export const getAllProductos = async (req, res) => {
     try {
-        const { incluir_alertas = false, metodo = null } = req.query;
+        const { metodo = null } = req.query;
         let productos;
         if (metodo && ['PEPS', 'UEPS'].includes(metodo.toUpperCase())) {
             productos = await InventarioModel.getAllByMetodo(metodo.toUpperCase());
@@ -17,12 +17,11 @@ export const getAllProductos = async (req, res) => {
             data: productos
         });
     } catch (error) {
-        console.error('Error al obtener inventario:', error);
+        logger.error(`Error al obtener inventario: ${error.message}`);
         res.status(500).json({ success: false, message: 'Error interno del servidor.' });
     }
 };
 
-// Obtener producto por ID
 export const getProductoById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -32,12 +31,11 @@ export const getProductoById = async (req, res) => {
         }
         res.status(200).json({ success: true, message: 'Producto encontrado exitosamente.', data: producto });
     } catch (error) {
-        console.error('Error al obtener producto por ID:', error);
+        logger.error(`Error al obtener producto por ID (${req.params.id}): ${error.message}`);
         res.status(500).json({ success: false, message: 'Error interno del servidor.' });
     }
 };
 
-// Crear nuevo producto
 export const createProducto = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -46,13 +44,14 @@ export const createProducto = async (req, res) => {
 
     try {
         const nuevoProducto = await InventarioModel.create(req.body);
+        logger.info(`Producto de inventario creado: ${nuevoProducto.codigo_item} - ${nuevoProducto.nombre_item}`);
         res.status(201).json({
             success: true,
             message: 'Producto creado exitosamente.',
             data: nuevoProducto
         });
     } catch (error) {
-        console.error('Error al crear producto:', error);
+        logger.error(`Error al crear producto de inventario: ${error.message}`, { body: req.body });
         if (error.code === '23505') {
             return res.status(400).json({ success: false, message: 'El código del item ya existe.' });
         }
@@ -60,7 +59,6 @@ export const createProducto = async (req, res) => {
     }
 };
 
-// Actualizar producto
 export const updateProducto = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -73,13 +71,14 @@ export const updateProducto = async (req, res) => {
         if (!productoActualizado) {
             return res.status(404).json({ success: false, message: 'Producto no encontrado para actualizar.' });
         }
+        logger.info(`Producto de inventario ID ${id} actualizado.`);
         res.status(200).json({
             success: true,
             message: 'Producto actualizado exitosamente.',
             data: productoActualizado
         });
     } catch (error) {
-        console.error('Error al actualizar producto:', error);
+        logger.error(`Error al actualizar producto de inventario ID ${req.params.id}: ${error.message}`, { body: req.body });
         if (error.code === '23505') {
             return res.status(400).json({ success: false, message: 'El código del item ya existe.' });
         }
@@ -87,7 +86,6 @@ export const updateProducto = async (req, res) => {
     }
 };
 
-// Eliminar (inactivar) producto
 export const deleteProducto = async (req, res) => {
     try {
         const { id } = req.params;
@@ -95,18 +93,18 @@ export const deleteProducto = async (req, res) => {
         if (!productoEliminado) {
             return res.status(404).json({ success: false, message: 'Producto no encontrado para eliminar.' });
         }
+        logger.info(`Producto de inventario ID ${id} marcado como inactivo.`);
         res.status(200).json({
             success: true,
             message: 'Producto marcado como inactivo exitosamente.',
             data: productoEliminado
         });
     } catch (error) {
-        console.error('Error al eliminar producto:', error);
+        logger.error(`Error al eliminar producto de inventario ID ${req.params.id}: ${error.message}`);
         res.status(500).json({ success: false, message: 'Error interno del servidor.' });
     }
 };
 
-// Obtener productos por categoría
 export const getProductosPorCategoria = async (req, res) => {
     try {
         const { categoria } = req.params;
@@ -117,12 +115,11 @@ export const getProductosPorCategoria = async (req, res) => {
             data: productos
         });
     } catch (error) {
-        console.error('Error al obtener productos por categoría:', error);
+        logger.error(`Error al obtener productos por categoría (${req.params.categoria}): ${error.message}`);
         res.status(500).json({ success: false, message: 'Error interno del servidor.' });
     }
 };
 
-// Obtener productos con stock bajo
 export const getStockBajo = async (req, res) => {
     try {
         const productos = await InventarioModel.getStockBajo();
@@ -132,12 +129,11 @@ export const getStockBajo = async (req, res) => {
             data: productos
         });
     } catch (error) {
-        console.error('Error al obtener productos con stock bajo:', error);
+        logger.error(`Error al obtener productos con stock bajo: ${error.message}`);
         res.status(500).json({ success: false, message: 'Error interno del servidor.' });
     }
 };
 
-// Obtener estadísticas del inventario
 export const getEstadisticas = async (req, res) => {
     try {
         const estadisticas = await InventarioModel.getEstadisticas();
@@ -147,7 +143,7 @@ export const getEstadisticas = async (req, res) => {
             data: estadisticas
         });
     } catch (error) {
-        console.error('Error al obtener estadísticas del inventario:', error);
+        logger.error(`Error al obtener estadísticas del inventario: ${error.message}`);
         res.status(500).json({ success: false, message: 'Error interno del servidor.' });
     }
 };
