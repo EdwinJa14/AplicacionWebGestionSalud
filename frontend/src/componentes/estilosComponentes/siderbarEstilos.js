@@ -1,5 +1,6 @@
 import { fontFamilyHeadings, fontFamilyBody } from './nomenclaturaGeneral'; 
 const styles = {
+  
   sidebar: {
     position: 'fixed',
     top: 0,
@@ -15,6 +16,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     transition: 'transform 0.3s ease-in-out',
+     position: 'fixed',
   },
   header: {
     display: 'flex',

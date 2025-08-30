@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   FaHome,
   FaUserMd,
@@ -7,13 +7,17 @@ import {
   FaUserShield,
   FaPills,
   FaBars,
-  FaArrowLeft
+  FaArrowLeft,
+  FaSignOutAlt
 } from 'react-icons/fa';
 import Logo from '../assets/Logo.png';
 import styles from './estilosComponentes/siderbarEstilos';
+import { useAuth } from '../context/authContext'; // Usamos el contexto para obtener el rol
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
+  const { role, logout } = useAuth(); // Obtenemos el rol y la función de logout del contexto
+  const navigate = useNavigate(); // Hook para redirección programática
 
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
@@ -31,6 +35,15 @@ export default function Sidebar() {
   const handleMouseLeave = (e) => {
     e.currentTarget.style.backgroundColor = 'transparent';
     e.currentTarget.style.color = styles.menuItem.color;
+  };
+
+  // Redirigir a una vista diferente según el rol al hacer clic en "Inicio"
+  const handleHomeClick = () => {
+    if (role === 'administrativo') {
+      navigate('/home'); // Redirige a la vista del administrador
+    } else if (role === 'medico' || role === 'enfermero') {
+      navigate('/inicio'); // Redirige a la vista del usuario (perfil)
+    }
   };
 
   return (
@@ -53,30 +66,76 @@ export default function Sidebar() {
         </div>
 
         <ul style={styles.menu}>
+          {/* Opción de "Inicio" con redirección condicional */}
           <li>
-            <Link to="/home" style={styles.menuItem} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+            <button
+              style={styles.menuItem}
+              onClick={handleHomeClick} // Llamamos a la función para redirigir
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+            >
               <FaHome style={styles.icon} /> Inicio
-            </Link>
+            </button>
           </li>
+
+          {/* Opciones para administradores */}
+          {role === 'administrativo' && (
+            <>
+              <li>
+                <Link to="/personal" style={styles.menuItem} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+                  <FaUserMd style={styles.icon} /> Personal
+                </Link>
+              </li>
+              <li>
+                <Link to="/pacientes" style={styles.menuItem} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+                  <FaUsers style={styles.icon} /> Pacientes
+                </Link>
+              </li>
+              <li>
+                <Link to="/usuarios" style={styles.menuItem} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+                  <FaUserShield style={styles.icon} /> Usuarios
+                </Link>
+              </li>
+              <li>
+                <Link to="/inventario" style={styles.menuItem} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+                  <FaPills style={styles.icon} /> Inventario
+                </Link>
+              </li>
+            </>
+          )}
+
+          {/* Opciones para médicos y enfermeros */}
+          {role === 'medico' || role === 'enfermero' ? (
+            <>
+              <li>
+                <Link to="/perfil" style={styles.menuItem} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+                  <FaUserShield style={styles.icon} /> Perfil
+                </Link>
+                
+              </li>
+              <li>
+                <Link to="/paciente" style={styles.menuItem} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+                  <FaUsers style={styles.icon} /> Pacientes
+                </Link>
+              </li>
+              <li>
+                <Link to="/inventario" style={styles.menuItem} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+                  <FaPills style={styles.icon} /> Inventario
+                </Link>
+              </li>
+            </>
+          ) : null}
+
+          {/* Botón de Cerrar Sesión */}
           <li>
-            <Link to="/personal" style={styles.menuItem} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-              <FaUserMd style={styles.icon} /> Personal
-            </Link>
-          </li>
-          <li>
-            <Link to="/pacientes" style={styles.menuItem} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-              <FaUsers style={styles.icon} /> Pacientes
-            </Link>
-          </li>
-          <li>
-            <Link to="/usuarios" style={styles.menuItem} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-              <FaUserShield style={styles.icon} /> Usuarios
-            </Link>
-          </li>
-          <li>
-            <Link to="/inventario" style={styles.menuItem} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-              <FaPills style={styles.icon} /> Inventario
-            </Link>
+            <button
+              style={styles.menuItem}
+              onClick={logout} // Llamamos a la función de logout
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+            >
+              <FaSignOutAlt style={styles.icon} /> Cerrar sesión
+            </button>
           </li>
         </ul>
 

@@ -34,7 +34,7 @@ export default function Login() {
             break;
           case 'medico':
           case 'enfermero':
-            navigate('/perfil');
+            navigate('/inicio');
             break;
           default:
             alert('Rol no reconocido');
